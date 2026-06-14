@@ -1,5 +1,5 @@
 [Unit]
-Description=Run contour-app auto-update daily
+Description=Run glass auto-update daily
 
 [Timer]
 OnCalendar=daily

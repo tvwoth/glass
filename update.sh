@@ -2,7 +2,7 @@
 
 ################################################################################
 #                                                                              #
-#  update.sh — безопасное обновление контейнеризированного приложения         #
+#  update.sh — безопасное обновление контейнеризированного приложения Glass  #
 #                                                                              #
 #  Действует idempotentно:                                                      #
 #   • проверяет root                                                           #
@@ -22,9 +22,9 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-log() { echo -e "${BLUE}[contour-update]${NC} $*"; }
-log_success() { echo -e "${GREEN}[contour-update]${NC} $*"; }
-log_error() { echo -e "${RED}[contour-update] ОШИБКА:${NC} $*" >&2; }
+log() { echo -e "${BLUE}[glass-update]${NC} $*"; }
+log_success() { echo -e "${GREEN}[glass-update]${NC} $*"; }
+log_error() { echo -e "${RED}[glass-update] ОШИБКА:${NC} $*" >&2; }
 
 require_root() {
     if [[ $EUID -ne 0 ]]; then
@@ -37,7 +37,7 @@ trap 'log_error "Обновление прервано."' ERR
 
 main() {
     require_root
-    APP_DIR="/opt/contour-app"
+    APP_DIR="/opt/glass"
 
     if [[ ! -d "$APP_DIR" ]]; then
         log_error "Каталог $APP_DIR не найден."
@@ -73,7 +73,7 @@ main() {
     chown -R 1000:1000 "$APP_DIR/app/user_configs" 2>/dev/null || true
     chmod 755 "$APP_DIR/app/user_configs" 2>/dev/null || true
 
-    ln -sf "$APP_DIR/change-password.sh" /usr/local/bin/contour-change-password 2>/dev/null || true
+    ln -sf "$APP_DIR/change-password.sh" /usr/local/bin/glass-change-password 2>/dev/null || true
 
     log "Останавливаем старые контейнеры и очищаем..."
     docker compose down --remove-orphans || true
@@ -84,17 +84,17 @@ main() {
     echo "Waiting for container startup..."
     sleep 10
 
-    STATUS=$(docker inspect --format='{{.State.Status}}' contour-app 2>/dev/null || echo "")
+    STATUS=$(docker inspect --format='{{.State.Status}}' glass 2>/dev/null || echo "")
     if [ "$STATUS" != "running" ]; then
         echo "Container failed to start. Logs:"
-        docker logs --tail 50 contour-app || true
+        docker logs --tail 50 glass || true
         exit 1
     fi
 
-    HEALTH=$(docker inspect --format='{{.State.Health.Status}}' contour-app 2>/dev/null || echo "")
+    HEALTH=$(docker inspect --format='{{.State.Health.Status}}' glass 2>/dev/null || echo "")
     if [ -n "$HEALTH" ] && [ "$HEALTH" != "healthy" ]; then
         echo "Container is not healthy. Logs:"
-        docker logs --tail 50 contour-app || true
+        docker logs --tail 50 glass || true
         exit 1
     fi
 

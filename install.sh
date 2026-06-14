@@ -2,13 +2,13 @@
 
 ################################################################################
 #                                                                              #
-#  install.sh — автоматическая установка/обновление окружения Contour App    #
+#  install.sh — автоматическая установка/обновление окружения Glass         #
 #                                                                              #
 #  Скрипт выполняет всё «в одну команду»:                                      #
 #   • настраивает репозиторий Docker (CE)                                     #
 #   • устанавливает требуемые пакеты (docker-ce, плагины, git и утилиты)     #
 #   • проверяет версии Docker/Compose                                          #
-#   • клонирует или обновляет репозиторий в /opt/contour-app                    #
+#   • клонирует или обновляет репозиторий в /opt/glass                        #
 #   • делает chmod +x для всех скриптов                                        #
 #   • формирует .env (не перезаписывает существующий)                         #
 #   • подчищает предыдущие контейнеры и запускает стек в docker compose        #
@@ -27,10 +27,10 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-log() { echo -e "${BLUE}[contour-install]${NC} $*"; }
-log_success() { echo -e "${GREEN}[contour-install]${NC} $*"; }
-log_error() { echo -e "${RED}[contour-install] ОШИБКА:${NC} $*" >&2; }
-log_warn() { echo -e "${YELLOW}[contour-install]${NC} $*"; }
+log() { echo -e "${BLUE}[glass-install]${NC} $*"; }
+log_success() { echo -e "${GREEN}[glass-install]${NC} $*"; }
+log_error() { echo -e "${RED}[glass-install] ОШИБКА:${NC} $*" >&2; }
+log_warn() { echo -e "${YELLOW}[glass-install]${NC} $*"; }
 
 require_root() {
     if [[ $EUID -ne 0 ]]; then
@@ -153,9 +153,9 @@ main() {
     start_docker
     check_versions
 
-    APP_DIR="/opt/contour-app"
-    REPO_URL="https://github.com/tvwoth/contour-app.git"
-    REPO_BRANCH="${CONTOUR_BRANCH:-main}"
+    APP_DIR="/opt/glass"
+    REPO_URL="https://github.com/tvwoth/glass.git"
+    REPO_BRANCH="${GLASS_BRANCH:-main}"
 
     if [[ -d "$APP_DIR/.git" ]]; then
         log "Репозиторий уже существует, обновляем..."
@@ -175,11 +175,11 @@ main() {
 
     log "Устанавливаем команды в /usr/local/bin..."
     mkdir -p /usr/local/bin
-    ln -sf "$APP_DIR/install.sh" /usr/local/bin/contour-install
-    ln -sf "$APP_DIR/update.sh" /usr/local/bin/contour-update
-    ln -sf "$APP_DIR/uninstall.sh" /usr/local/bin/contour-uninstall
-    ln -sf "$APP_DIR/change-password.sh" /usr/local/bin/contour-change-password
-    log_success "Команды contour-install, contour-update, contour-uninstall и contour-change-password доступны глобально."
+    ln -sf "$APP_DIR/install.sh" /usr/local/bin/glass-install
+    ln -sf "$APP_DIR/update.sh" /usr/local/bin/glass-update
+    ln -sf "$APP_DIR/uninstall.sh" /usr/local/bin/glass-uninstall
+    ln -sf "$APP_DIR/change-password.sh" /usr/local/bin/glass-change-password
+    log_success "Команды glass-install, glass-update, glass-uninstall и glass-change-password доступны глобально."
 
     read -rp "Введите внутренний порт приложения (APP_PORT) [5000]: " APP_PORT
     APP_PORT=${APP_PORT:-5000}
@@ -261,18 +261,18 @@ main() {
     echo "Waiting for container startup..."
     sleep 10
 
-    STATUS=$(docker inspect --format='{{.State.Status}}' contour-app 2>/dev/null || echo "")
+    STATUS=$(docker inspect --format='{{.State.Status}}' glass 2>/dev/null || echo "")
     if [ "$STATUS" != "running" ]; then
         echo "Container failed to start. Logs:"
-        docker logs --tail 20 contour-app || true
+        docker logs --tail 20 glass || true
         exit 1
     fi
 
     # Если в контейнере объявлен HEALTHCHECK, убедимся, что он healthy
-    HEALTH=$(docker inspect --format='{{.State.Health.Status}}' contour-app 2>/dev/null || echo "")
+    HEALTH=$(docker inspect --format='{{.State.Health.Status}}' glass 2>/dev/null || echo "")
     if [ -n "$HEALTH" ] && [ "$HEALTH" != "healthy" ]; then
         echo "Container is not healthy. Logs:"
-        docker logs --tail 20 contour-app || true
+        docker logs --tail 20 glass || true
         exit 1
     fi
 
@@ -281,11 +281,11 @@ main() {
     ip=${ip:-<SERVER_IP>}
     log_success "Приложение должно быть доступно по http://${ip}"
 
-    if confirm "Включить ежедневное автообновление (contour-update.timer)?"; then
+    if confirm "Включить ежедневное автообновление (glass-update.timer)?"; then
         log "Настраиваем systemd-таймеры..."
-        cp contour-update.service contour-update.timer /etc/systemd/system/ || true
+        cp glass-update.service glass-update.timer /etc/systemd/system/ || true
         systemctl daemon-reload
-        systemctl enable --now contour-update.timer
+        systemctl enable --now glass-update.timer
         log_success "Автообновление включено."
     else
         log "Автообновление не включено."

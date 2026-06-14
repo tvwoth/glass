@@ -1,11 +1,11 @@
 [Unit]
-Description=Contour App Flask Service
+Description=Glass Flask Service
 After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/contour-app
-ExecStart=/opt/contour-app/run.sh
+WorkingDirectory=/opt/glass
+ExecStart=/opt/glass/run.sh
 Restart=always
 Environment=PYTHONUNBUFFERED=1
 

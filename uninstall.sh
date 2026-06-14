@@ -2,13 +2,13 @@
 
 ################################################################################
 #                                                                              #
-#  uninstall.sh — полное удаление приложения Contour App с сервера            #
+#  uninstall.sh — полное удаление приложения Glass с сервера                 #
 #                                                                              #
 #  НАЗНАЧЕНИЕ:                                                                #
-#  Скрипт удаляет все следы установки Contour App:                           #
+#  Скрипт удаляет все следы установки Glass:                                  #
 #  • Останавливает и удаляет Docker-контейнеры, volumes, networks            #
 #  • Отключает и удаляет systemd-юниты для автообновления                    #
-#  • Удаляет директорию проекта /opt/contour-app                             #
+#  • Удаляет директорию проекта /opt/glass                                   #
 #  • Выводит инструкции для ручной очистки Nginx                             #
 #                                                                              #
 #  ИСПОЛЬЗОВАНИЕ:                                                             #
@@ -106,27 +106,27 @@ main() {
     require_root
     
     log_info "=========================================="
-    log_info "  Удаление приложения Contour App"
+    log_info "  Удаление приложения Glass"
     log_info "=========================================="
     echo ""
     
     # Шаг 1: Проверить существование директории проекта
-    if ! directory_exists "/opt/contour-app"; then
-        log_warning "Директория /opt/contour-app не найдена."
+    if ! directory_exists "/opt/glass"; then
+        log_warning "Директория /opt/glass не найдена."
         log_info "Приложение уже удалено или не был установлено."
         exit 0
     fi
     
-    log_success "Найдена директория /opt/contour-app"
+    log_success "Найдена директория /opt/glass"
     echo ""
     
-    confirm_action "Удалить полностью приложение Contour App?" "$force_mode"
+    confirm_action "Удалить полностью приложение Glass?" "$force_mode"
     echo ""
     
     # Шаг 2: Остановить Docker-контейнеры
     log_info "Останавливаем Docker-контейнеры..."
-    if directory_exists "/opt/contour-app" && file_exists "/opt/contour-app/docker-compose.yml"; then
-        cd "/opt/contour-app"
+    if directory_exists "/opt/glass" && file_exists "/opt/glass/docker-compose.yml"; then
+        cd "/opt/glass"
         
         # Пытаемся остановить контейнеры (ошибка не критична)
         if docker compose down -v --remove-orphans 2>/dev/null || docker-compose down -v --remove-orphans 2>/dev/null || true; then
@@ -140,7 +140,7 @@ main() {
     
     # Шаг 2.1: Удаление Nginx-конфигов
     log_info "Удаляем конфиги Nginx (если существуют)..."
-    rm -f /etc/nginx/sites-enabled/contour* /etc/nginx/sites-available/contour* 2>/dev/null || true
+    rm -f /etc/nginx/sites-enabled/contour* /etc/nginx/sites-available/contour* /etc/nginx/sites-enabled/glass* /etc/nginx/sites-available/glass* 2>/dev/null || true
     systemctl reload nginx 2>/dev/null || true
     log_success "Конфиги Nginx удалены и nginx перезагружен (если установлен)"
     
@@ -150,6 +150,9 @@ main() {
     log_info "Отключаем и удаляем systemd-юниты..."
     
     local units_to_remove=(
+        "glass-update.timer"
+        "glass-update.service"
+        "glass.service"
         "contour-update.timer"
         "contour-update.service"
         "contour.service"
@@ -184,15 +187,15 @@ main() {
     
     # Шаг 4: Удалить директорию проекта
     log_info "Удаляем директорию проекта..."
-    if directory_exists "/opt/contour-app"; then
-        rm -rf "/opt/contour-app"
-        log_success "/opt/contour-app полностью удалена"
+    if directory_exists "/opt/glass"; then
+        rm -rf "/opt/glass"
+        log_success "/opt/glass полностью удалена"
     else
-        log_warning "Директория /opt/contour-app уже не существует"
+        log_warning "Директория /opt/glass уже не существует"
     fi
 
     log_info "Удаляем команды из /usr/local/bin..."
-    rm -f /usr/local/bin/contour-install /usr/local/bin/contour-update /usr/local/bin/contour-uninstall 2>/dev/null || true
+    rm -f /usr/local/bin/glass-install /usr/local/bin/glass-update /usr/local/bin/glass-uninstall /usr/local/bin/glass-change-password /usr/local/bin/contour-install /usr/local/bin/contour-update /usr/local/bin/contour-uninstall /usr/local/bin/contour-change-password 2>/dev/null || true
     log_success "Глобальные команды удалены"
 
     # по желанию очистим Docker
@@ -227,7 +230,7 @@ main() {
     # Итоговое сообщение
     echo ""
     log_success "=========================================="
-    log_success "  Приложение Contour App успешно удалено!"
+    log_success "  Приложение Glass успешно удалено!"
     log_success "=========================================="
 }
 

@@ -1,4 +1,4 @@
-# 📊 Contour App
+# 📊 Glass
 
 > Веб-приложение на Flask для расчёта и визуализации контуров.  
 > Быстрый запуск через Docker, обратный прокси через Nginx, автообновление «из коробки».
@@ -12,7 +12,7 @@
 ```bash
 sudo apt update
 sudo apt install curl -y
-curl -O https://raw.githubusercontent.com/tvwoth/contour-app/main/install.sh
+curl -O https://raw.githubusercontent.com/tvwoth/glass/main/install.sh
 chmod +x install.sh
 sudo ./install.sh
 ```
@@ -27,12 +27,12 @@ http://SERVER_IP
 После первого запуска доступны глобальные команды:
 
 ```bash
-sudo contour-install
-sudo contour-update
-sudo contour-uninstall
+sudo glass-install
+sudo glass-update
+sudo glass-uninstall
 
 ```
-contour-app/
+glass/
 ├── Dockerfile                 # Образ Python 3.11 (non-root, gunicorn)
 ├── docker-compose.yml         # Сервисы: app + nginx, restart: always
 ├── install.sh                 # One-click установка Docker-версии
@@ -70,7 +70,7 @@ contour-app/
    **Nginx не устанавливается на хосте — он запускается в контейнере.**
 4. Проверяет версии Docker (>= 20) и docker compose (v2+);
    если не удовлетворяют — прекращает выполнение.
-5. Клонирует/обновляет репозиторий в `/opt/contour-app` (ветка `main`),
+5. Клонирует/обновляет репозиторий в `/opt/glass` (ветка `main`),
    делает `chmod +x` для всех скриптов.
 5. Запрашивает порт приложения `APP_PORT` (по умолчанию 5000) и,
    если `.env` ещё не создан, копирует шаблон `.env.example` и
@@ -82,11 +82,11 @@ contour-app/
 8. Собирает и запускает контейнеры:
    `docker compose up -d --build --force-recreate`.
 9. При желании включает ежедневный systemd‑таймер
-   (`contour-update.timer`) для автообновления.
+   (`glass-update.timer`) для автообновления.
 10. Выводит адрес приложения и подсказки (`docker compose ps`,
     `docker compose logs -f`).
 
-В выводе используются цветные метки `[contour-install]`.
+В выводе используются цветные метки `[glass-install]`.
 
 > 💡 Более не требуется вручную chmod‑ить скрипты, устанавливать
 > плагины Compose или удалять старые контейнеры — всё это делает
@@ -102,26 +102,26 @@ contour-app/
 Самый простой способ обновиться — использовать глобальную команду:
 
 ```bash
-sudo contour-update
+sudo glass-update
 ```
 
 Альтернативно можно запустить локальный скрипт из каталога установки:
 
 ```bash
-cd /opt/contour-app
+cd /opt/glass
 sudo ./update.sh
 ```
 
 Теперь `update.sh` делает больше и безопаснее:
 
-- заходит в `/opt/contour-app` (проверяет, что папка есть);
+- заходит в `/opt/glass` (проверяет, что папка есть);
 - тянет `git pull --ff-only` и восстанавливает права на скрипты;
 - очищает старые контейнеры (`docker compose down --remove-orphans`);
 - пересобирает образы (`docker compose build --no-cache`);
 - перезапускает стек (`docker compose up -d --force-recreate`);
 - выводит статус (`docker compose ps`).
 
-Выполнение сопровождается цветными логами `[contour-update]` и
+Выполнение сопровождается цветными логами `[glass-update]` и
 `trap` выводит ошибку при сбое.
 
 ❗ Одного запуска `install.sh` достаточно, он выполняет всё то же,
@@ -132,20 +132,20 @@ sudo ./update.sh
 Для ежедневного автоматического обновления можно использовать systemd-таймеры:
 
 ```bash
-sudo cp contour-update.service contour-update.timer /etc/systemd/system/
+sudo cp glass-update.service glass-update.timer /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now contour-update.timer
+sudo systemctl enable --now glass-update.timer
 ```
 
 📋 Что делают юниты:
-- `contour-update.service` — запускает `/opt/contour-app/update.sh`
-- `contour-update.timer` — активирует сервис раз в сутки
+- `glass-update.service` — запускает `/opt/glass/update.sh`
+- `glass-update.timer` — активирует сервис раз в сутки
 
 ---
 
 ## 📋 Просмотр логов
 
-Находясь в `/opt/contour-app`:
+Находясь в `/opt/glass`:
 
 ```bash
 # Логи приложения (Flask + Gunicorn)
@@ -186,14 +186,14 @@ docker compose logs -f nginx
 ### Смена пароля
 
 ```bash
-cd /opt/contour-app
+cd /opt/glass
 sudo ./change-password.sh
 ```
 
 Или глобально:
 
 ```bash
-sudo contour-change-password
+sudo glass-change-password
 ```
 
 Скрипт обновит `CONFIG_ADMIN_PASSWORD` в `.env` и предложит перезапустить контейнеры.
@@ -230,20 +230,20 @@ sudo contour-change-password
 Для полного удаления приложения со всеми следами установки выполните глобальную команду:
 
 ```bash
-sudo contour-uninstall
+sudo glass-uninstall
 ```
 
-Если вы находитесь в каталоге `/opt/contour-app`, можно использовать локальный скрипт:
+Если вы находитесь в каталоге `/opt/glass`, можно использовать локальный скрипт:
 
 ```bash
-cd /opt/contour-app
+cd /opt/glass
 sudo ./uninstall.sh
 ```
 
 Скрипт автоматически:
 - ✓ Останавливает Docker-контейнеры и удаляет volumes
 - ✓ Отключает и удаляет systemd-юниты для автообновления
-- ✓ Удаляет директорию `/opt/contour-app`
+- ✓ Удаляет директорию `/opt/glass`
 - ✓ Требует подтверждения перед удалением
 
 **Запустить без подтверждения:**
@@ -254,7 +254,7 @@ sudo ./uninstall.sh --force
 **Ручная очистка** (если нужна):
 ```bash
 # Удалить конфиг Nginx (если был создан)
-sudo rm -f /etc/nginx/sites-enabled/contour*
+sudo rm -f /etc/nginx/sites-enabled/contour* /etc/nginx/sites-enabled/glass*
 sudo nginx -t && sudo systemctl reload nginx
 
 # Удалить Docker (если больше не нужен)

@@ -1,8 +1,8 @@
 [Unit]
-Description=Daily auto-update for contour-app (Docker)
+Description=Daily auto-update for glass (Docker)
 
 [Service]
 Type=oneshot
-WorkingDirectory=/opt/contour-app
-ExecStart=/opt/contour-app/update.sh
+WorkingDirectory=/opt/glass
+ExecStart=/opt/glass/update.sh
 

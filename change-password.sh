@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 ################################################################################
-#  change-password.sh — смена пароля администратора конфигураций               #
+#  change-password.sh — смена пароля администратора конфигураций Glass       #
 ################################################################################
 
 set -euo pipefail
@@ -12,11 +12,11 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-log() { echo -e "${BLUE}[contour-password]${NC} $*"; }
-log_success() { echo -e "${GREEN}[contour-password]${NC} $*"; }
-log_error() { echo -e "${RED}[contour-password] ОШИБКА:${NC} $*" >&2; }
+log() { echo -e "${BLUE}[glass-password]${NC} $*"; }
+log_success() { echo -e "${GREEN}[glass-password]${NC} $*"; }
+log_error() { echo -e "${RED}[glass-password] ОШИБКА:${NC} $*" >&2; }
 
-APP_DIR="${CONTOUR_APP_DIR:-/opt/contour-app}"
+APP_DIR="${GLASS_APP_DIR:-/opt/glass}"
 
 if [[ ! -d "$APP_DIR" ]]; then
     APP_DIR="$(cd "$(dirname "$0")" && pwd)"
