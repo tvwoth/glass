@@ -23,6 +23,7 @@ from .config_service import (
     apply_h_params,
     parse_h_params,
 )
+from .api.routes import register_api_routes
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
@@ -298,6 +299,10 @@ def rename_config():
 @app.route('/rename_config', methods=['GET'])
 def config_admin_routes_get():
     abort(405)
+
+
+# Register API routes
+register_api_routes(app)
 
 
 if __name__ == '__main__':
