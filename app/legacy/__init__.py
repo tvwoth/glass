@@ -1,0 +1,1 @@
+# Legacy module - kept for backward compatibility and equivalence testing

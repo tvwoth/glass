@@ -1,3 +1,12 @@
+"""
+LEGACY IMPLEMENTATION
+
+Used only for verifying equivalence
+of the new mathematical core.
+
+Do NOT use in new development.
+"""
+
 import math
 import json
 import os

@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 import pytest
 
-from app.calculator.contour_calculator import ContourCalculator as OriginalCalculator
+from app.legacy.contour_calculator import ContourCalculator as OriginalCalculator
 from app.core.calculator import ContourCalculator as NewCalculator
 
 

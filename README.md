@@ -1,271 +1,116 @@
-# 📊 Glass
+# Contour App
 
-> Веб-приложение на Flask для расчёта и визуализации контуров.  
-> Быстрый запуск через Docker, обратный прокси через Nginx, автообновление «из коробки».
+> Веб-приложение для расчёта и визуализации геометрии контуров стеклопакетов.
+> Расчёт выполняется по трём из четырёх заданных параметров (n1, n2, n3, angle_EF),
+> четвёртый вычисляется автоматически.
 
 ---
 
-## 🚀 Быстрый старт (Docker)
+## Основные возможности
 
-Хотите запустить приложение на чистом сервере Ubuntu/Debian? Просто выполните:
+* Расчёт контура стеклопакета (точки A–K)
+* Работа с системными и пользовательскими конфигурациями
+* Экспорт результатов в PDF, JSON и CSV
+* Веб-интерфейс на Flask
+* REST API (`POST /api/calculate`)
+* CLI (`python -m app.cli`)
 
-```bash
-sudo apt update
-sudo apt install curl -y
-curl -O https://raw.githubusercontent.com/tvwoth/glass/main/install.sh
-chmod +x install.sh
-sudo ./install.sh
-```
+---
 
-🔹 В процессе установки вас попросят указать **внутренний порт приложения (`APP_PORT`)** — по умолчанию `5000`.
-🔹 После завершения приложение будет доступно в браузере по адресу:
+## Быстрый запуск
 
-```text
-http://SERVER_IP
-```
-
-После первого запуска доступны глобальные команды:
+### Установка зависимостей
 
 ```bash
-sudo glass-install
-sudo glass-update
-sudo glass-uninstall
-
+python -m venv .venv
+source .venv/bin/activate   # Linux/macOS
+# или .venv\Scripts\activate  # Windows
+pip install -r requirements.txt
 ```
-glass/
-├── Dockerfile                 # Образ Python 3.11 (non-root, gunicorn)
-├── docker-compose.yml         # Сервисы: app + nginx, restart: always
-├── install.sh                 # One-click установка Docker-версии
-├── update.sh                  # Обновление из Git + пересборка контейнеров
-├── uninstall.sh               # One-click удаление приложения и следов
-├── nginx/default.conf         # Reverse proxy: 80 → app:APP_PORT
-├── requirements.txt           # Python-зависимости
-├── .env.example               # Шаблон для .env (APP_PORT, HOST_HTTP_PORT)
-├── app/                       # Python-пакет с приложением
-│   ├── __init__.py            # Flask‑приложение
-│   ├── calculator/            # Логика расчётов
-│   ├── templates/             # HTML-шаблоны
-│   ├── static/                # CSS, JS, изображения
-│   ├── configs/               # Системные пресеты (только чтение)
-│   └── user_configs/          # Пользовательские конфигурации (volume data/)
-├── change-password.sh         # Смена пароля администратора конфигураций
-└── (прочие скрипты и файлы)
 
+### Запуск приложения
+
+```bash
+python -m app
+# Приложение доступно на http://localhost:5000
+```
+
+### Запуск через Docker
+
+```bash
+docker compose up -d --build
+# Приложение доступно на http://localhost
 ```
 
 ---
 
-## 🔧 Как работает установка (`install.sh`)
+## Структура проекта
 
-Скрипт теперь полностью автоматизирован и идемпотентен. После одной
-команды он подготовит систему, установит всё нужное и запустит
-контейнеры, а повторный запуск просто обновит код и образы.
-
-1. Проверяет права root / sudo.
-2. На лету добавляет официальный репозиторий Docker (CE) и ключ.
-3. Устанавливает или обновляет пакеты:
-   `docker-ce`, `docker-ce-cli`, `containerd.io`,
-   `docker-buildx-plugin`, `docker-compose-plugin`, `git` и утилиты
-   (`curl`, `lsb-release` и др.).
-   **Nginx не устанавливается на хосте — он запускается в контейнере.**
-4. Проверяет версии Docker (>= 20) и docker compose (v2+);
-   если не удовлетворяют — прекращает выполнение.
-5. Клонирует/обновляет репозиторий в `/opt/glass` (ветка `main`),
-   делает `chmod +x` для всех скриптов.
-5. Запрашивает порт приложения `APP_PORT` (по умолчанию 5000) и,
-   если `.env` ещё не создан, копирует шаблон `.env.example` и
-   подставляет значение. Существующий `.env` не перезаписывается.
-   Если порт 80 занят, `install.sh` запросит альтернативный хост‑порт
-   `HOST_HTTP_PORT` и запомнит его в `.env`.
-7. Перед поднятием стека очищает любые орфанные контейнеры
-   (`docker compose down --remove-orphans -v`).
-8. Собирает и запускает контейнеры:
-   `docker compose up -d --build --force-recreate`.
-9. При желании включает ежедневный systemd‑таймер
-   (`glass-update.timer`) для автообновления.
-10. Выводит адрес приложения и подсказки (`docker compose ps`,
-    `docker compose logs -f`).
-
-В выводе используются цветные метки `[glass-install]`.
-
-> 💡 Более не требуется вручную chmod‑ить скрипты, устанавливать
-> плагины Compose или удалять старые контейнеры — всё это делает
-> `install.sh`.
-
-✅ Контейнеры работают с `restart: always` — после перезагрузки
-сервера стек автоматически поднимется.
-
----
-
-## 🔄 Обновление приложения
-
-Самый простой способ обновиться — использовать глобальную команду:
-
-```bash
-sudo glass-update
 ```
-
-Альтернативно можно запустить локальный скрипт из каталога установки:
-
-```bash
-cd /opt/glass
-sudo ./update.sh
-```
-
-Теперь `update.sh` делает больше и безопаснее:
-
-- заходит в `/opt/glass` (проверяет, что папка есть);
-- тянет `git pull --ff-only` и восстанавливает права на скрипты;
-- очищает старые контейнеры (`docker compose down --remove-orphans`);
-- пересобирает образы (`docker compose build --no-cache`);
-- перезапускает стек (`docker compose up -d --force-recreate`);
-- выводит статус (`docker compose ps`).
-
-Выполнение сопровождается цветными логами `[glass-update]` и
-`trap` выводит ошибку при сбое.
-
-❗ Одного запуска `install.sh` достаточно, он выполняет всё то же,
-что и `update.sh`.
-
-### ⏰ Автообновление (опционально)
-
-Для ежедневного автоматического обновления можно использовать systemd-таймеры:
-
-```bash
-sudo cp glass-update.service glass-update.timer /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now glass-update.timer
-```
-
-📋 Что делают юниты:
-- `glass-update.service` — запускает `/opt/glass/update.sh`
-- `glass-update.timer` — активирует сервис раз в сутки
-
----
-
-## 📋 Просмотр логов
-
-Находясь в `/opt/glass`:
-
-```bash
-# Логи приложения (Flask + Gunicorn)
-docker compose logs -f app
-
-# Логи Nginx
-docker compose logs -f nginx
+contour-app/
+├── app/
+│   ├── __init__.py              # Flask-приложение
+│   ├── cli.py                   # Командная строка (CLI)
+│   ├── config_service.py        # Сервис конфигураций (веб)
+│   ├── api/
+│   │   └── routes.py            # REST API
+│   ├── configs/                 # Системные пресеты (JSON)
+│   │   └── manager.py           # Менеджер конфигураций (CLI)
+│   ├── core/
+│   │   ├── calculator.py        # Единственный источник математики
+│   │   ├── calculate.py         # Обёртка-интерфейс
+│   │   └── exceptions.py        # Кастомные исключения
+│   ├── legacy/
+│   │   └── contour_calculator.py # Оригинальная реализация (для тестов)
+│   ├── rendering/
+│   │   └── matplotlib_renderer.py # Визуализация графика
+│   ├── storage/
+│   │   ├── export_json.py       # Экспорт в JSON
+│   │   ├── export_csv.py        # Экспорт в CSV
+│   │   └── export_pdf.py        # Экспорт в PDF
+│   ├── templates/               # HTML-шаблоны
+│   ├── static/                  # Статические файлы
+│   └── user_configs/            # Пользовательские конфигурации
+├── tests/
+│   ├── test_calculate_wrapper.py
+│   ├── test_contour_calculator.py
+│   └── test_core_calculator.py
+├── docs/
+│   └── API.md                   # Спецификация API
+├── docker-compose.yml
+├── Dockerfile
+├── requirements.txt
+└── .env.example
 ```
 
 ---
 
-## 🔐 Пользовательские конфигурации и пароль администратора
+## Ссылки на документацию
 
-Приложение поддерживает сохранение собственных наборов H-параметров в JSON.
-Системные пресеты в `app/configs/` доступны только для чтения.
-Пользовательские конфигурации хранятся в `data/user_configs/` и сохраняются между обновлениями через Docker volume.
-
-### Кто что может делать
-
-| Действие | Обычный пользователь | Администратор |
-|---|---|---|
-| Расчёт | ✓ | ✓ |
-| Загрузка конфигураций | ✓ | ✓ |
-| Сохранение / удаление / переименование | ✗ | ✓ |
-
-Администратор определяется паролем `CONFIG_ADMIN_PASSWORD` из `.env`.
-При установке скрипт запросит пароль (Enter = `admin`).
-
-### Режим редактирования в интерфейсе
-
-1. Нажмите **«Режим редактирования конфигураций»**.
-2. Введите пароль администратора.
-3. В блоке «Свои настройки» появятся кнопки сохранения, удаления и переименования.
-
-Сессия администратора действует ограниченное время (по умолчанию 2 часа).
-Защита дублируется на сервере: маршруты `/save_config`, `/delete_config` и `/rename_config` возвращают `403` без активной сессии.
-
-### Смена пароля
-
-```bash
-cd /opt/glass
-sudo ./change-password.sh
-```
-
-Или глобально:
-
-```bash
-sudo glass-change-password
-```
-
-Скрипт обновит `CONFIG_ADMIN_PASSWORD` в `.env` и предложит перезапустить контейнеры.
+| Документ | Назначение |
+|----------|-----------|
+| [USER_GUIDE.md](USER_GUIDE.md) | Руководство пользователя |
+| [ADMIN_GUIDE.md](ADMIN_GUIDE.md) | Руководство администратора |
+| [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) | Руководство разработчика |
+| [CONFIG_FORMAT.md](CONFIG_FORMAT.md) | Спецификация формата конфигураций |
+| [docs/API.md](docs/API.md) | Спецификация REST API |
 
 ---
 
-## ⚙️ Как изменить порт после установки
+## Краткая сводка CLI
 
-1. Остановите стек:
-   ```bash
-   docker compose down
-   ```
+```bash
+python -m app.cli calculate config.json
+python -m app.cli render config.json [output.png]
+python -m app.cli export-pdf config.json [output.pdf]
+python -m app.cli config-list
+python -m app.cli config-edit <name> [param=value ...]
+```
 
-2. Отредактируйте `.env`, указав новый порт:
-   ```bash
-   nano .env
-   # APP_PORT=новый_порт
-   ```
-
-3. Обновите `nginx/default.conf`, заменив старый порт на новый  
-   *(или просто запустите `install.sh` заново и укажите новый порт)*
-
-4. Запустите стек:
-   ```bash
-   docker compose up -d --build
-   ```
-
-> 🌐 Внешний URL останется `http://SERVER_IP` — Nginx продолжает слушать 80-й порт и проксирует запросы на новый внутренний порт.
+Подробное описание — в [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md#cli).
 
 ---
 
-## 🗑 Полное удаление приложения
+## Лицензия
 
-Для полного удаления приложения со всеми следами установки выполните глобальную команду:
-
-```bash
-sudo glass-uninstall
-```
-
-Если вы находитесь в каталоге `/opt/glass`, можно использовать локальный скрипт:
-
-```bash
-cd /opt/glass
-sudo ./uninstall.sh
-```
-
-Скрипт автоматически:
-- ✓ Останавливает Docker-контейнеры и удаляет volumes
-- ✓ Отключает и удаляет systemd-юниты для автообновления
-- ✓ Удаляет директорию `/opt/glass`
-- ✓ Требует подтверждения перед удалением
-
-**Запустить без подтверждения:**
-```bash
-sudo ./uninstall.sh --force
-```
-
-**Ручная очистка** (если нужна):
-```bash
-# Удалить конфиг Nginx (если был создан)
-sudo rm -f /etc/nginx/sites-enabled/contour* /etc/nginx/sites-enabled/glass*
-sudo nginx -t && sudo systemctl reload nginx
-
-# Удалить Docker (если больше не нужен)
-sudo apt remove -y docker.io docker-compose docker-compose-plugin
-sudo docker system prune -a -f
-```
-
----
-
-> 💬 **Совет**: Все команды в этом руководстве можно копировать и вставлять — они проверены и работают «как есть».  
-> 🐳 Приложение полностью контейнеризовано: минимум зависимостей на хосте, максимум предсказуемости.
-
-*Документация актуальна для версии на базе Docker. При возникновении вопросов — проверяйте логи или создавайте issue в репозитории.* 🛠️
-
+Проект Glass / Contour App.
