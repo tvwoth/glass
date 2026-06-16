@@ -16,7 +16,8 @@ from flask import (
     url_for,
 )
 
-from .calculator.contour_calculator import ContourCalculator, generate_plot
+from .core.calculator import ContourCalculator
+from .rendering.matplotlib_renderer import render as generate_plot
 from .config_service import (
     VIRTUAL_CUSTOM_CONFIG,
     ConfigRepository,
