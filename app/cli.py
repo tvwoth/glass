@@ -90,9 +90,14 @@ def cmd_calculate(args):
     result = core_calculate(input_data, config)
     print_result(result)
 
-    # Auto-save JSON result
+    # Auto-save JSON result with metadata
     output_path = Path(args.config).with_suffix('.result.json')
-    export_json(result, str(output_path))
+    metadata = {
+        "config_name": Path(args.config).stem,
+        "config": config,
+        "input": input_data,
+    }
+    export_json(result, str(output_path), metadata=metadata)
     print(f"\nРезультат сохранён: {output_path}")
 
 
@@ -124,7 +129,8 @@ def cmd_export_pdf(args):
     result = core_calculate(input_data, config)
 
     output = args.output or Path(args.config).with_suffix('.pdf')
-    export_pdf(result, str(output))
+    config_name = Path(args.config).stem
+    export_pdf(result, str(output), config_name=config_name)
     print(f"PDF отчёт сохранён: {output}")
 
 

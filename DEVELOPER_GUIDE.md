@@ -11,9 +11,10 @@
 │   ├── REST API (POST /api/calculate)            │
 │   └── CLI (python -m app.cli)                   │
 ├─────────────────────────────────────────────────┤
-│  Сервисный слой                                 │
-│   ├── app/config_service.py (веб)               │
-│   └── app/configs/manager.py (CLI)              │
+│  Конфигурации                                   │
+│   └── app/configs/                              │
+│       ├── manager.py  — ConfigManager (CRUD)    │
+│       └── helpers.py  — parse_h_params и др.    │
 ├─────────────────────────────────────────────────┤
 │  Ядро расчётов                                  │
 │   ├── app/core/calculator.py  ← ЕДИНСТВЕННЫЙ    │
@@ -67,7 +68,7 @@ python -m pytest tests/ -v
 ### Конвенция
 
 * Координаты `j_x` и `c_x` всегда отрицательные (левая сторона контура).
-* В web-интерфейсе (`app/config_service.py`, функция `parse_h_params`) к введённым
+* В web-интерфейсе (`app/configs/helpers.py`, функция `parse_h_params`) к введённым
   значениям применяется операция `-abs()`.
 * В API и CLI значения передаются как есть — отрицательные.
 
@@ -129,12 +130,12 @@ python -m pytest tests/ -v
 * Веб-интерфейс (режим администратора)
 * CLI (`python -m app.cli config-edit`)
 
-### Менеджеры конфигураций
+### Менеджер конфигураций
 
 | Модуль | Назначение | Используется |
 |--------|-----------|-------------|
-| `app/config_service.py` | Сервис для веб-приложения (Flask) | `app/__init__.py` |
-| `app/configs/manager.py` | Сервис для CLI | `app/cli.py` |
+| `app/configs/manager.py` | Единый ConfigManager (CRUD) | Web, API, CLI |
+| `app/configs/helpers.py` | parse_h_params, apply_h_params | Web, CLI |
 
 ---
 

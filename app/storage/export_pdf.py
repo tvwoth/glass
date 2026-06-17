@@ -5,10 +5,10 @@ import os
 from typing import Dict, Any
 
 
-def export_pdf(result: Dict[str, Any], output_path: str, image_path: str = None) -> None:
+def export_pdf(result: Dict[str, Any], output_path: str, image_path: str = None, config_name: str = None) -> None:
     """
     Export calculation results to PDF file.
-    Includes date, parameters, results, and contour image.
+    Includes date, app version, config name, parameters, results, and contour image.
     
     Uses matplotlib as PDF backend for simplicity.
     
@@ -16,17 +16,24 @@ def export_pdf(result: Dict[str, Any], output_path: str, image_path: str = None)
         result: Calculation result dictionary from calculate()
         output_path: Path to save the PDF file
         image_path: Optional path to contour image to embed
+        config_name: Optional configuration name
     """
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     from datetime import datetime
+    from app.version import APP_VERSION
     
     fig = plt.figure(figsize=(8.27, 11.69))  # A4 portrait
     fig.suptitle("Результаты расчёта контура", fontsize=16, fontweight='bold')
     
-    # Date
-    plt.figtext(0.1, 0.95, f"Дата: {datetime.now().strftime('%d.%m.%Y %H:%M')}", fontsize=10)
+    # App version and date
+    plt.figtext(0.1, 0.95, f"Версия: {APP_VERSION}", fontsize=10)
+    plt.figtext(0.1, 0.93, f"Дата: {datetime.now().strftime('%d.%m.%Y %H:%M')}", fontsize=10)
+    
+    # Config name
+    if config_name:
+        plt.figtext(0.1, 0.91, f"Конфигурация: {config_name}", fontsize=10)
     
     # Parameters
     params_text = (

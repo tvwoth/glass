@@ -18,12 +18,8 @@ from flask import (
 
 from .core.calculator import ContourCalculator
 from .rendering.matplotlib_renderer import render as generate_plot
-from .config_service import (
-    VIRTUAL_CUSTOM_CONFIG,
-    ConfigRepository,
-    apply_h_params,
-    parse_h_params,
-)
+from .configs.manager import ConfigManager, VIRTUAL_CUSTOM_CONFIG
+from .configs.helpers import apply_h_params, parse_h_params
 from .api.routes import register_api_routes
 
 app = Flask(__name__)
@@ -42,7 +38,7 @@ config_images = {
 }
 
 APP_DIR = os.path.dirname(__file__)
-config_repo = ConfigRepository(APP_DIR)
+config_repo = ConfigManager(APP_DIR)
 calculator = ContourCalculator()
 
 
@@ -81,7 +77,7 @@ def logout_config_admin():
 
 
 def get_config_name_field(selected_config: str) -> str:
-    if config_repo.is_user_config(selected_config):
+    if config_repo.is_user(selected_config):
         return selected_config
     return ''
 
@@ -103,14 +99,14 @@ def detect_custom_config(selected_config: str, params: dict) -> str:
         return VIRTUAL_CUSTOM_CONFIG
     with open(path, 'r', encoding='utf-8') as f:
         config_data = json.load(f)
-    if not config_repo.params_match_saved(params, config_data):
+    if not config_repo.params_match(params, config_data):
         return VIRTUAL_CUSTOM_CONFIG
     return selected_config
 
 
 def render_index(**kwargs):
-    preset_configs = config_repo.list_system_configs()
-    user_configs = config_repo.list_user_configs()
+    preset_configs = config_repo.list_system()
+    user_configs = config_repo.list_user()
     defaults = {
         'calculator': calculator,
         'preset_configs': preset_configs,
@@ -252,7 +248,7 @@ def save_config():
             raise ValueError('Пожалуйста, введите имя конфигурации')
         params = parse_h_params(request.form)
         apply_h_params(calculator, params)
-        saved_name = config_repo.save_user_config(config_name, params)
+        saved_name = config_repo.save(config_name, params)
         flash(f'Конфигурация «{saved_name}» сохранена.', 'success')
         return redirect(url_for('index', config=saved_name))
     except ValueError as e:
@@ -269,7 +265,7 @@ def delete_config():
     try:
         if not config_name:
             config_name = request.form.get('config', '').strip()
-        config_repo.delete_user_config(config_name)
+        config_repo.delete(config_name)
         flash(f'Конфигурация «{config_name}» удалена.', 'success')
         return redirect(url_for('index'))
     except ValueError as e:
@@ -285,7 +281,7 @@ def rename_config():
     old_name = request.form.get('config', '').strip()
     new_name = request.form.get('config_name', '').strip()
     try:
-        renamed = config_repo.rename_user_config(old_name, new_name)
+        renamed = config_repo.rename(old_name, new_name)
         flash(f'Конфигурация переименована в «{renamed}».', 'success')
         return redirect(url_for('index', config=renamed))
     except ValueError as e:

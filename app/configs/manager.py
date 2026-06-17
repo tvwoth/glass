@@ -7,6 +7,7 @@ import os
 import re
 from typing import Any, Optional, List, Dict
 
+VIRTUAL_CUSTOM_CONFIG = 'Пользовательская конфигурация'
 H_PARAM_KEYS = (
     'j_x', 'c_x', 'cd_len', 'de_len', 'fg_len',
     'gh_len', 'hi_len', 'jk_len', 'hcor',
@@ -105,6 +106,10 @@ class ConfigManager:
         ]
         return sorted(names)
 
+    def all_selectable_configs(self) -> List[str]:
+        """Return all configs available for selection in UI (system + user + virtual)."""
+        return self.list_system() + self.list_user() + [VIRTUAL_CUSTOM_CONFIG]
+
     def duplicate(self, name: str, new_name: str) -> str:
         """Duplicate an existing configuration."""
         data = self.load(name)
@@ -147,13 +152,23 @@ class ConfigManager:
             return user_path
         return None
 
-    def _is_system(self, name: str) -> bool:
+    def is_system(self, name: str) -> bool:
+        """Check if configuration is a system preset."""
         return os.path.isfile(os.path.join(self.system_dir, f'{name}.json'))
 
-    def _is_user(self, name: str) -> bool:
+    def is_user(self, name: str) -> bool:
+        """Check if configuration is a user configuration."""
         if not self.user_dir:
             return False
         return os.path.isfile(os.path.join(self.user_dir, f'{name}.json'))
+
+    def _is_system(self, name: str) -> bool:
+        """Internal check for system config."""
+        return self.is_system(name)
+
+    def _is_user(self, name: str) -> bool:
+        """Internal check for user config."""
+        return self.is_user(name)
 
     def _sanitize_name(self, name: str) -> str:
         """Validate and sanitize configuration name."""
@@ -164,6 +179,8 @@ class ConfigManager:
             raise ValueError(f'Имя конфигурации не длиннее {MAX_CONFIG_NAME_LEN} символов')
         if '..' in name or '/' in name or '\\' in name:
             raise ValueError('Имя не должно содержать .., / или \\')
+        if name == VIRTUAL_CUSTOM_CONFIG:
+            raise ValueError('Зарезервированное имя конфигурации')
         if not re.match(r'^[\w\- ]+$', name, re.UNICODE):
             raise ValueError('Имя может содержать только буквы, цифры, пробелы, _ и -')
         return name
@@ -180,6 +197,10 @@ class ConfigManager:
                 raise ValueError(f'Поле {key} должно быть числом') from exc
             result[key] = value
         return result
+
+    def validate_h_params(self, data: Dict[str, Any]) -> Dict[str, float]:
+        """Public wrapper for parameter validation."""
+        return self._validate_params(data)
 
     def params_match(self, params: Dict[str, Optional[float]], config_data: Dict) -> bool:
         """Check if current parameters match saved configuration."""
