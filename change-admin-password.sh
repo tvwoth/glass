@@ -1,32 +1,13 @@
 #!/usr/bin/env bash
-
-################################################################################
-#                                                                              #
-#  change-admin-password.sh — смена пароля администратора Contour Glass       #
-#                                                                              #
-#  Использует werkzeug.security для хеширования пароля.                       #
-#                                                                              #
-#  Использование:                                                              #
-#    sudo ./change-admin-password.sh                                           #
-#    sudo ./manage.sh password                                                 #
-#                                                                              #
-################################################################################
-
 set -euo pipefail
 
-# ============================================================================
-# Цвета
-# ============================================================================
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; NC='\033[0m'
+if [[ ! -t 1 ]]; then RED=''; GREEN=''; YELLOW=''; BLUE=''; NC=''; fi
 
-log()     { echo -e "${BLUE}[contour-password]${NC} $*"; }
-success() { echo -e "${GREEN}[contour-password]${NC} $*"; }
-error()   { echo -e "${RED}[contour-password] ОШИБКА:${NC} $*" >&2; }
-warn()    { echo -e "${YELLOW}[contour-password]${NC} $*"; }
+log()       { echo -e "${BLUE}[contour-password]${NC} $*"; }
+success()   { echo -e "${GREEN}[contour-password]${NC} $*"; }
+error()     { echo -e "${RED}[contour-password] ОШИБКА:${NC} $*" >&2; }
+warn()      { echo -e "${YELLOW}[contour-password]${NC} $*"; }
 
 require_root() {
     if [[ $EUID -ne 0 ]]; then
@@ -42,8 +23,6 @@ main() {
     require_root "$@"
 
     APP_DIR="/opt/glass"
-
-    # Если скрипт запущен из каталога проекта
     if [[ -f .env ]]; then
         APP_DIR="$(pwd)"
     elif [[ -d "$APP_DIR" ]]; then
@@ -65,50 +44,33 @@ main() {
     echo -e "${BLUE}============================================${NC}"
     echo ""
 
-    read -rsp "Введите новый пароль администратора: " NEW_PW
-    echo
-    if [[ -z "$NEW_PW" ]]; then
-        error "Пароль не может быть пустым."
+    if ! python3 -c "import werkzeug" 2>/dev/null; then
+        error "werkzeug не установлен. Хеширование пароля невозможно."
+        error "Установите: pip install werkzeug"
+        error "Или: apt-get install python3-werkzeug (Ubuntu/Debian)"
         exit 1
     fi
 
-    read -rsp "Повторите пароль: " NEW_PW2
-    echo
-    if [[ "$NEW_PW" != "$NEW_PW2" ]]; then
-        error "Пароли не совпадают."
-        exit 1
-    fi
-
-    # Хешируем пароль с помощью werkzeug.security (через Python)
-    # Если werkzeug не установлен, используем openssl как fallback
-    local hashed_pw
-    if python3 -c "import werkzeug.security" 2>/dev/null; then
-        hashed_pw=$(python3 -c "
-import werkzeug.security
-print(werkzeug.security.generate_password_hash('${NEW_PW}'))
-")
-    else
-        warn "werkzeug не найден, устанавливаем..."
-        pip3 install werkzeug -q 2>/dev/null || true
-        if python3 -c "import werkzeug.security" 2>/dev/null; then
-            hashed_pw=$(python3 -c "
-import werkzeug.security
-print(werkzeug.security.generate_password_hash('${NEW_PW}')
-")
-        else
-            warn "Не удалось установить werkzeug. Пароль будет сохранён в открытом виде."
-            hashed_pw="${NEW_PW}"
+    while true; do
+        read -rsp "Введите новый пароль администратора (минимум 4 символа): " NEW_PW
+        echo
+        if [[ ${#NEW_PW} -lt 4 ]]; then
+            warn "Ошибка: пароль должен содержать минимум 4 символа."
+            continue
         fi
-    fi
+        read -rsp "Повторите пароль: " NEW_PW2
+        echo
+        if [[ "$NEW_PW" != "$NEW_PW2" ]]; then
+            warn "Ошибка: пароли не совпадают."
+            continue
+        fi
+        break
+    done
 
-    # Сохраняем хеш пароля в .env
     if grep -q '^CONFIG_ADMIN_PASSWORD=' .env 2>/dev/null; then
-        # Экранируем спецсимволы для sed
-        local escaped_pw
-        escaped_pw=$(echo "$hashed_pw" | sed 's/[\/&]/\\&/g')
-        sed -i "s|^CONFIG_ADMIN_PASSWORD=.*$|CONFIG_ADMIN_PASSWORD=${escaped_pw}|" .env
+        sed -i "s|^CONFIG_ADMIN_PASSWORD=.*$|CONFIG_ADMIN_PASSWORD=${NEW_PW}|" .env
     else
-        echo "CONFIG_ADMIN_PASSWORD=${hashed_pw}" >> .env
+        echo "CONFIG_ADMIN_PASSWORD=${NEW_PW}" >> .env
     fi
 
     success "Пароль администратора обновлён."
@@ -116,7 +78,7 @@ print(werkzeug.security.generate_password_hash('${NEW_PW}')
     echo ""
     echo "Перезапустить контейнеры сейчас?"
     read -r -p "[y/N]: " RESTART
-    if [[ "$RESTART" == "yes" ]]; then
+    if [[ "$RESTART" == "y" || "$RESTART" == "yes" ]]; then
         log "Перезапуск контейнеров..."
         docker compose up -d --force-recreate
         success "Контейнеры перезапущены."
