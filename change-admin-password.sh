@@ -114,7 +114,7 @@ print(werkzeug.security.generate_password_hash('${NEW_PW}')
     success "Пароль администратора обновлён."
 
     echo ""
-    echo -e "${YELLOW}Перезапустить контейнеры сейчас?${NC}"
+    echo "Перезапустить контейнеры сейчас?"
     read -r -p "[y/N]: " RESTART
     if [[ "$RESTART" == "yes" ]]; then
         log "Перезапуск контейнеров..."

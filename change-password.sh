@@ -51,7 +51,7 @@ fi
 
 log_success "Пароль администратора обновлён в .env"
 
-read -r -p "${YELLOW}Перезапустить контейнеры сейчас? (yes/no): ${NC}" RESTART
+read -r -p "Перезапустить контейнеры сейчас? [y/N]: " RESTART
 if [[ "$RESTART" == "yes" ]]; then
     docker compose up -d --force-recreate
     log_success "Контейнеры перезапущены."

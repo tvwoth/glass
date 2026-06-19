@@ -62,8 +62,7 @@ check_cmd() {
 confirm() {
     local msg="$1"
     local resp
-    echo -e "${YELLOW}${msg}${NC}"
-    read -r -p "[y/N]: " resp
+    read -r -p "${msg} [y/N]: " resp
     [[ "$resp" == "y" || "$resp" == "yes" ]]
 }
 
@@ -481,7 +480,7 @@ main() {
     fi
 
     # Пароль администратора — всегда запрашиваем
-    read -rsp "Введите пароль администратора [admin]: " ADMIN_PW
+    read -rp "Введите пароль администратора [admin]: " ADMIN_PW
     echo
     ADMIN_PW=${ADMIN_PW:-admin}
 

@@ -65,7 +65,7 @@ main() {
     echo ""
 
     local resp
-    echo -e "${YELLOW}Вы уверены?${NC}"
+    echo "Вы уверены?"
     read -r -p "[y/N]: " resp
     if [[ "$resp" != "y" && "$resp" != "yes" ]]; then
         log "Сброс отменён."
@@ -82,7 +82,7 @@ main() {
     success "Пароль сброшен до значения: admin"
 
     echo ""
-    echo -e "${YELLOW}Перезапустить контейнеры сейчас?${NC}"
+    echo "Перезапустить контейнеры сейчас?"
     read -r -p "[y/N]: " RESTART
     if [[ "$RESTART" == "yes" ]]; then
         log "Перезапуск контейнеров..."

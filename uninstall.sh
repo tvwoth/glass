@@ -57,7 +57,7 @@ confirm_action() {
     fi
 
     local resp
-    echo -e "${YELLOW}${prompt}${NC}"
+    echo "${prompt}"
     read -r -p "[y/N]: " resp
     if [[ "$resp" != "y" && "$resp" != "yes" ]]; then
         log "Действие отменено."
@@ -109,7 +109,7 @@ main() {
     local save_data=false
     if [[ "$force_mode" != "true" ]]; then
         local resp
-        echo -e "${YELLOW}Сохранить пользовательские конфигурации перед удалением?${NC}"
+        echo "Сохранить пользовательские конфигурации перед удалением?"
         read -r -p "[y/N]: " resp
         if [[ "$resp" == "yes" ]]; then
             save_data=true
