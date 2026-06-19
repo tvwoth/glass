@@ -62,7 +62,8 @@ check_cmd() {
 confirm() {
     local msg="$1"
     local resp
-    read -r -p "${msg} [y/N]: " resp
+    printf "%s [y/N]: " "${msg}"
+    read -r resp
     [[ "$resp" == "y" || "$resp" == "yes" ]]
 }
 
@@ -480,9 +481,23 @@ main() {
     fi
 
     # Пароль администратора — всегда запрашиваем
-    read -rp "Введите пароль администратора [admin]: " ADMIN_PW
-    echo
-    ADMIN_PW=${ADMIN_PW:-admin}
+    echo ""
+    echo "Настройка пароля администратора:"
+    while true; do
+        read -rsp "Введите пароль администратора (минимум 4 символа): " ADMIN_PW
+        echo
+        if [[ ${#ADMIN_PW} -lt 4 ]]; then
+            echo -e "${YELLOW}Ошибка: пароль должен содержать минимум 4 символа.${NC}"
+            continue
+        fi
+        read -rsp "Повторите пароль: " ADMIN_PW2
+        echo
+        if [[ "$ADMIN_PW" != "$ADMIN_PW2" ]]; then
+            echo -e "${YELLOW}Ошибка: пароли не совпадают.${NC}"
+            continue
+        fi
+        break
+    done
 
     if grep -q '^CONFIG_ADMIN_PASSWORD=' .env 2>/dev/null; then
         sed -i "s|^CONFIG_ADMIN_PASSWORD=.*$|CONFIG_ADMIN_PASSWORD=${ADMIN_PW}|" .env
