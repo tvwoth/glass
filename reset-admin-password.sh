@@ -65,8 +65,9 @@ main() {
     echo ""
 
     local resp
-    read -r -p "Вы уверены? (yes/no): " resp
-    if [[ "$resp" != "yes" ]]; then
+    echo -e "${YELLOW}Вы уверены?${NC}"
+    read -r -p "[y/N]: " resp
+    if [[ "$resp" != "y" && "$resp" != "yes" ]]; then
         log "Сброс отменён."
         exit 0
     fi
@@ -81,7 +82,8 @@ main() {
     success "Пароль сброшен до значения: admin"
 
     echo ""
-    read -r -p "${YELLOW}Перезапустить контейнеры сейчас? (yes/no): ${NC}" RESTART
+    echo -e "${YELLOW}Перезапустить контейнеры сейчас?${NC}"
+    read -r -p "[y/N]: " RESTART
     if [[ "$RESTART" == "yes" ]]; then
         log "Перезапуск контейнеров..."
         docker compose up -d --force-recreate

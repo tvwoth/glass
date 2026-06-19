@@ -62,8 +62,9 @@ check_cmd() {
 confirm() {
     local msg="$1"
     local resp
-    read -r -p "${YELLOW}${msg} (yes/no): ${NC}" resp
-    [[ "$resp" == "yes" ]]
+    echo -e "${YELLOW}${msg}${NC}"
+    read -r -p "[y/N]: " resp
+    [[ "$resp" == "y" || "$resp" == "yes" ]]
 }
 
 is_port_busy() {
@@ -479,16 +480,17 @@ main() {
         echo "APP_PORT=${APP_PORT}" >> .env
     fi
 
-    # Пароль администратора
-    if ! grep -q '^CONFIG_ADMIN_PASSWORD=' .env 2>/dev/null; then
-        read -rsp "Введите пароль администратора (Enter = admin): " ADMIN_PW
-        echo
-        ADMIN_PW=${ADMIN_PW:-admin}
-        echo "CONFIG_ADMIN_PASSWORD=${ADMIN_PW}" >> .env
-        success "Пароль администратора установлен."
+    # Пароль администратора — всегда запрашиваем
+    read -rsp "Введите пароль администратора [admin]: " ADMIN_PW
+    echo
+    ADMIN_PW=${ADMIN_PW:-admin}
+
+    if grep -q '^CONFIG_ADMIN_PASSWORD=' .env 2>/dev/null; then
+        sed -i "s|^CONFIG_ADMIN_PASSWORD=.*$|CONFIG_ADMIN_PASSWORD=${ADMIN_PW}|" .env
     else
-        log "Пароль администратора уже задан в .env, пропускаем."
+        echo "CONFIG_ADMIN_PASSWORD=${ADMIN_PW}" >> .env
     fi
+    success "Пароль администратора установлен."
 
     # SECRET_KEY
     if ! grep -q '^SECRET_KEY=' .env 2>/dev/null; then

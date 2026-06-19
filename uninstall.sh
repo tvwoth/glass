@@ -57,10 +57,10 @@ confirm_action() {
     fi
 
     local resp
-    echo -ne "${YELLOW}⚠${NC} $prompt (введите 'yes' для подтверждения): "
-    read -r resp
-    if [[ "$resp" != "yes" ]]; then
-        log "Удаление отменено."
+    echo -e "${YELLOW}${prompt}${NC}"
+    read -r -p "[y/N]: " resp
+    if [[ "$resp" != "y" && "$resp" != "yes" ]]; then
+        log "Действие отменено."
         exit 0
     fi
 }
@@ -109,7 +109,8 @@ main() {
     local save_data=false
     if [[ "$force_mode" != "true" ]]; then
         local resp
-        read -r -p "${YELLOW}Сохранить пользовательские конфигурации перед удалением? (yes/no): ${NC}" resp
+        echo -e "${YELLOW}Сохранить пользовательские конфигурации перед удалением?${NC}"
+        read -r -p "[y/N]: " resp
         if [[ "$resp" == "yes" ]]; then
             save_data=true
             local backup_dir="${HOME}/contour-backup-$(date +%Y-%m-%d_%H-%M-%S)"

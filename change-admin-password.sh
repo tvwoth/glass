@@ -114,7 +114,8 @@ print(werkzeug.security.generate_password_hash('${NEW_PW}')
     success "Пароль администратора обновлён."
 
     echo ""
-    read -r -p "${YELLOW}Перезапустить контейнеры сейчас? (yes/no): ${NC}" RESTART
+    echo -e "${YELLOW}Перезапустить контейнеры сейчас?${NC}"
+    read -r -p "[y/N]: " RESTART
     if [[ "$RESTART" == "yes" ]]; then
         log "Перезапуск контейнеров..."
         docker compose up -d --force-recreate
