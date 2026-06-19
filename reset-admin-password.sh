@@ -38,10 +38,11 @@ fi
 NEW_PW=$(openssl rand -base64 12 2>/dev/null | tr -dc 'a-zA-Z0-9' || echo "ContourReset123!")
 if [[ ${#NEW_PW} -lt 4 ]]; then NEW_PW="ContourReset123!"; fi
 
+HASHED_PW=$(python3 -c "import werkzeug.security; print(werkzeug.security.generate_password_hash('${NEW_PW}'))")
 if grep -q '^CONFIG_ADMIN_PASSWORD=' .env 2>/dev/null; then
-    sed -i "s|^CONFIG_ADMIN_PASSWORD=.*$|CONFIG_ADMIN_PASSWORD=${NEW_PW}|" .env
+    sed -i "s|^CONFIG_ADMIN_PASSWORD=.*$|CONFIG_ADMIN_PASSWORD=${HASHED_PW}|" .env
 else
-    echo "CONFIG_ADMIN_PASSWORD=${NEW_PW}" >> .env
+    echo "CONFIG_ADMIN_PASSWORD=${HASHED_PW}" >> .env
 fi
 
 echo -e "${GREEN}Пароль сброшен: ${NEW_PW}${NC}"

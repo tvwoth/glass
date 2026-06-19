@@ -499,10 +499,11 @@ main() {
         break
     done
 
+    HASHED_PW=$(python3 -c "import werkzeug.security; print(werkzeug.security.generate_password_hash('${ADMIN_PW}'))")
     if grep -q '^CONFIG_ADMIN_PASSWORD=' .env 2>/dev/null; then
-        sed -i "s|^CONFIG_ADMIN_PASSWORD=.*$|CONFIG_ADMIN_PASSWORD=${ADMIN_PW}|" .env
+        sed -i "s|^CONFIG_ADMIN_PASSWORD=.*$|CONFIG_ADMIN_PASSWORD=${HASHED_PW}|" .env
     else
-        echo "CONFIG_ADMIN_PASSWORD=${ADMIN_PW}" >> .env
+        echo "CONFIG_ADMIN_PASSWORD=${HASHED_PW}" >> .env
     fi
     success "Пароль администратора установлен."
 
