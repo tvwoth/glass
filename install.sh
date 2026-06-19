@@ -63,8 +63,9 @@ confirm() {
     local msg="$1"
     local resp
     # Strip ANSI escape sequences to avoid raw codes appearing in read prompt
+    # Use printf '%b' to convert literal \033 strings to actual escape chars, then strip them
     local clean_msg
-    clean_msg=$(echo "$msg" | sed 's/\033\[[0-9;]*m//g')
+    clean_msg=$(printf '%b' "$msg" | sed 's/\033\[[0-9;]*m//g')
     echo -n "${clean_msg} [y/N]: "
     read -r resp
     [[ "$resp" == "y" || "$resp" == "yes" ]]
