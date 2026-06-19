@@ -176,7 +176,7 @@ def cmd_config_edit(args):
 def main():
     """Main entry point for CLI."""
     parser = argparse.ArgumentParser(
-        description="Contour Calculator - расчёт геометрии контура стеклопакета"
+        description="Contour Calculator - расчёт геометрии контура стеклянного козырька"
     )
     subparsers = parser.add_subparsers(dest="command", help="Доступные команды")
 

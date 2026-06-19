@@ -5,6 +5,8 @@ import time
 from datetime import timedelta
 from itertools import zip_longest
 
+import werkzeug.security
+
 from flask import (
     Flask,
     abort,
@@ -43,7 +45,22 @@ calculator = ContourCalculator()
 
 
 def get_admin_password() -> str:
+    """Return the stored admin password (may be plaintext or werkzeug hash)."""
     return os.environ.get('CONFIG_ADMIN_PASSWORD', 'admin')
+
+
+def _check_password(plain_password: str, stored_password: str) -> bool:
+    """Check a password against a stored password (supports plaintext and werkzeug hash)."""
+    if not plain_password or not stored_password:
+        return False
+    # If the stored password looks like a werkzeug hash (pbkdf2:...)
+    if stored_password.startswith('pbkdf2:sha'):
+        try:
+            return werkzeug.security.check_password_hash(stored_password, plain_password)
+        except Exception:
+            return False
+    # Fallback to plaintext comparison for backward compatibility
+    return plain_password == stored_password
 
 
 def is_config_admin() -> bool:
@@ -63,7 +80,7 @@ def require_config_admin():
 
 
 def login_config_admin(password: str) -> bool:
-    if password == get_admin_password():
+    if _check_password(password, get_admin_password()):
         session.permanent = True
         session['config_admin'] = True
         session['config_admin_expires'] = time.time() + app.config['PERMANENT_SESSION_LIFETIME'].total_seconds()

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GlassOverhang</title>
+    <title>Contour Glass — конструкция стеклянного козырька</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -76,7 +76,6 @@
             line-height: 1;
             box-sizing: border-box;
         }
-        /* Добавленный стиль для выравнивания кнопок */
         .settings-header {
             display: flex;
             align-items: center;
@@ -139,7 +138,6 @@
             .table th, .table td {
                 font-size: 0.8rem;
             }
-            /* Увеличиваем шрифт инпутов на мобильных, чтобы убрать авто-зум */
             .form-control {
                 font-size: 1rem;
             }
@@ -158,7 +156,7 @@
 </head>
 <body>
     <div class="container">
-        <h1 class="mb-4">Стеклянный навес</h1>
+        <h1 class="mb-4">Конструкция стеклянного козырька</h1>
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -197,7 +195,7 @@
                         <button type="button" class="btn btn-outline-info btn-icon ms-2" data-bs-toggle="modal" data-bs-target="#configHelpModal" title="Справка"><i class="bi bi-question-circle"></i></button>
                     </div>
                     <div class="settings-header">
-                        <button type="button" class="btn btn-outline-secondary mb-3" data-bs-toggle="collapse" data-bs-target="#hParams">Свои настройки</button>
+                        <button type="button" class="btn btn-outline-secondary mb-3" data-bs-toggle="collapse" data-bs-target="#hParams" id="hParamsToggle">Свои настройки</button>
                         <button type="button" class="btn btn-outline-info mb-3 ms-2" data-bs-toggle="modal" data-bs-target="#helpModal"><i class="bi bi-question-circle me-1"></i>Инструкция</button>
                         {% if config_admin %}
                             <form method="POST" action="{{ url_for('config_admin_logout') }}" class="mb-3 ms-2">
@@ -219,43 +217,43 @@
                                     <div class="col-md-6">
                                         <div class="mb-2">
                                             <label for="j_x" class="form-label">H1 (мм)</label>
-                                            <input type="number" step="any" class="form-control" id="j_x" name="j_x" placeholder="Введите H1" value="{{ abs_j_x | float | round(2) if abs_j_x is not none else '' }}">
+                                            <input type="number" step="any" class="form-control h-param" id="j_x" name="j_x" placeholder="Введите H1" value="{{ abs_j_x | float | round(2) if abs_j_x is not none else '' }}">
                                         </div>
                                         <div class="mb-2">
                                             <label for="c_x" class="form-label">H2 (мм)</label>
-                                            <input type="number" step="any" class="form-control" id="c_x" name="c_x" placeholder="Введите H2" value="{{ abs_c_x | float | round(2) if abs_c_x is not none else '' }}">
+                                            <input type="number" step="any" class="form-control h-param" id="c_x" name="c_x" placeholder="Введите H2" value="{{ abs_c_x | float | round(2) if abs_c_x is not none else '' }}">
                                         </div>
                                         <div class="mb-2">
                                             <label for="cd_len" class="form-label">H3 (мм)</label>
-                                            <input type="number" step="any" class="form-control" id="cd_len" name="cd_len" placeholder="Введите H3" value="{{ calculator.CD_LEN | float | round(2) if calculator.CD_LEN is not none else '' }}">
+                                            <input type="number" step="any" class="form-control h-param" id="cd_len" name="cd_len" placeholder="Введите H3" value="{{ calculator.CD_LEN | float | round(2) if calculator.CD_LEN is not none else '' }}">
                                         </div>
                                         <div class="mb-2">
                                             <label for="de_len" class="form-label">H4 (мм)</label>
-                                            <input type="number" step="any" class="form-control" id="de_len" name="de_len" placeholder="Введите H4" value="{{ calculator.DE_LEN | float | round(2) if calculator.DE_LEN is not none else '' }}">
+                                            <input type="number" step="any" class="form-control h-param" id="de_len" name="de_len" placeholder="Введите H4" value="{{ calculator.DE_LEN | float | round(2) if calculator.DE_LEN is not none else '' }}">
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="mb-2">
                                             <label for="fg_len" class="form-label">H5 (мм)</label>
-                                            <input type="number" step="any" class="form-control" id="fg_len" name="fg_len" placeholder="Введите H5" value="{{ calculator.FG_LEN | float | round(2) if calculator.FG_LEN is not none else '' }}">
+                                            <input type="number" step="any" class="form-control h-param" id="fg_len" name="fg_len" placeholder="Введите H5" value="{{ calculator.FG_LEN | float | round(2) if calculator.FG_LEN is not none else '' }}">
                                         </div>
                                         <div class="mb-2">
                                             <label for="gh_len" class="form-label">H6 (мм)</label>
-                                            <input type="number" step="any" class="form-control" id="gh_len" name="gh_len" placeholder="Введите H6" value="{{ calculator.GH_LEN | float | round(2) if calculator.GH_LEN is not none else '' }}">
+                                            <input type="number" step="any" class="form-control h-param" id="gh_len" name="gh_len" placeholder="Введите H6" value="{{ calculator.GH_LEN | float | round(2) if calculator.GH_LEN is not none else '' }}">
                                         </div>
                                         <div class="mb-2">
                                             <label for="hi_len" class="form-label">H7 (мм)</label>
-                                            <input type="number" step="any" class="form-control" id="hi_len" name="hi_len" placeholder="Введите H7" value="{{ calculator.HI_LEN | float | round(2) if calculator.HI_LEN is not none else '' }}">
+                                            <input type="number" step="any" class="form-control h-param" id="hi_len" name="hi_len" placeholder="Введите H7" value="{{ calculator.HI_LEN | float | round(2) if calculator.HI_LEN is not none else '' }}">
                                         </div>
                                         <div class="mb-2">
                                             <label for="jk_len" class="form-label">H8 (мм)</label>
-                                            <input type="number" step="any" class="form-control" id="jk_len" name="jk_len" placeholder="Введите H8" value="{{ calculator.JK_LEN | float | round(2) if calculator.JK_LEN is not none else '' }}">
+                                            <input type="number" step="any" class="form-control h-param" id="jk_len" name="jk_len" placeholder="Введите H8" value="{{ calculator.JK_LEN | float | round(2) if calculator.JK_LEN is not none else '' }}">
                                         </div>
                                     </div>
                                 </div>
                                 <div class="mb-2">
                                     <label for="hcor" class="form-label">Hcor (мм)</label>
-                                    <input type="number" step="any" class="form-control" id="hcor" name="hcor" placeholder="Введите Hcor" value="{{ calculator.HCOR | float | round(2) if calculator.HCOR is not none else '' }}">
+                                    <input type="number" step="any" class="form-control h-param" id="hcor" name="hcor" placeholder="Введите Hcor" value="{{ calculator.HCOR | float | round(2) if calculator.HCOR is not none else '' }}">
                                 </div>
                                 {% if config_admin %}
                                 <div class="config-admin-panel">
@@ -290,7 +288,7 @@
                                 <input type="number" step="any" class="form-control" id="n1" name="n1" placeholder="Введите n1" value="{{ calculator.n1 | float | round(2) if calculator.n1 is not none else '' }}">
                             </div>
                             <div class="col-md-4">
-                                <label for="n2" class="form-label">Между отверстиями в стекле</label>
+                                <label for="n2" class="form-label">Между отверстиями в узлах</label>
                                 <input type="number" step="any" class="form-control" id="n2" name="n2" placeholder="Введите n2" value="{{ calculator.n2 | float | round(2) if calculator.n2 is not none else '' }}">
                             </div>
                             <div class="col-md-4">
@@ -300,7 +298,7 @@
                         </div>
                         <div class="row g-2 mt-2">
                             <div class="col-md-6">
-                                <label for="angle_EF" class="form-label">Угол наклона стекла</label>
+                                <label for="angle_EF" class="form-label">Угол наклона конструкции</label>
                                 <input type="number" step="any" min="0" max="10" class="form-control" id="angle_EF" name="angle_EF" placeholder="0–10" value="{{ (calculator.angle_D - 180) | float | round(2) if calculator.angle_D is not none else '' }}">
                             </div>
                             <div class="col-md-6 d-flex align-items-end">
@@ -406,8 +404,8 @@
                              <li>Выберите конфигурацию фурнитуры из списка «Пресеты» или «Мои конфигурации», либо используйте «Пользовательская конфигурация» для несохранённых изменений.</li>
                              <li>Откройте «Свои настройки», чтобы вручную задать размеры либо изменить существующие.</li>
                              <li>Для сохранения, удаления и переименования конфигураций войдите в режим редактирования (требуется пароль администратора).</li>
-                             <li>Включите REV, если нижний фитинг должен быть под стеклом.</li>
-                             <li>Введите три из четырёх параметров в «Основных параметрах»: n1 (вертикальное расстояние между креплениями к стене), n2 (расстояние между отверстиями в стекле), n3 (длина ванта), угол (0°–10°).</li>
+                             <li>Включите REV, если нижний фитинг должен быть под конструкцией.</li>
+                             <li>Введите три из четырёх параметров в «Основных параметрах»: n1 (вертикальное расстояние между креплениями к стене), n2 (расстояние между отверстиями в узлах конструкции), n3 (длина ванта), угол (0°–10°).</li>
                              <li>Нажмите «Рассчитать» для получения искомого параметра.</li>
                         </ul>
                     </div>
@@ -466,6 +464,119 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // ================================================================
+        // Сохранение/восстановление данных формы через localStorage
+        // ================================================================
+        const FORM_STORAGE_KEY = 'contour_form_data';
+
+        function saveFormState() {
+            const data = {};
+            const form = document.getElementById('calcForm');
+            if (!form) return;
+            const elements = form.querySelectorAll('input, select, textarea');
+            elements.forEach(function(el) {
+                if (el.name && el.type !== 'hidden' && el.type !== 'submit' && el.type !== 'button') {
+                    if (el.type === 'checkbox') {
+                        data[el.name] = el.checked;
+                    } else {
+                        data[el.name] = el.value;
+                    }
+                }
+            });
+            // Also save H-params
+            const hForm = document.getElementById('hParamsForm');
+            if (hForm) {
+                const hEls = hForm.querySelectorAll('input, select, textarea');
+                hEls.forEach(function(el) {
+                    if (el.name && el.type !== 'hidden' && el.type !== 'submit' && el.type !== 'button') {
+                        if (el.type === 'checkbox') {
+                            data['h_' + el.name] = el.checked;
+                        } else {
+                            data['h_' + el.name] = el.value;
+                        }
+                    }
+                });
+            }
+            localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(data));
+        }
+
+        function restoreFormState() {
+            const saved = localStorage.getItem(FORM_STORAGE_KEY);
+            if (!saved) return;
+            try {
+                const data = JSON.parse(saved);
+                const form = document.getElementById('calcForm');
+                if (!form) return;
+                Object.keys(data).forEach(function(key) {
+                    if (key.startsWith('h_')) {
+                        // H-param fields
+                        const hForm = document.getElementById('hParamsForm');
+                        if (!hForm) return;
+                        const realKey = key.substring(2);
+                        const el = hForm.querySelector('[name="' + realKey + '"]');
+                        if (el) {
+                            if (el.type === 'checkbox') {
+                                el.checked = data[key];
+                            } else if (el.value === '' || el.value === undefined) {
+                                el.value = data[key];
+                            }
+                        }
+                    } else {
+                        const el = form.querySelector('[name="' + key + '"]');
+                        if (el) {
+                            if (el.type === 'checkbox') {
+                                el.checked = data[key];
+                            } else if (el.value === '' || el.value === undefined) {
+                                el.value = data[key];
+                            }
+                        }
+                    }
+                });
+            } catch (e) {
+                // ignore JSON parse errors
+            }
+        }
+
+        // Save form state on any input change
+        document.addEventListener('input', function(e) {
+            if (e.target.form && (e.target.form.id === 'calcForm' || e.target.form.id === 'hParamsForm')) {
+                saveFormState();
+            }
+        });
+
+        document.addEventListener('change', function(e) {
+            if (e.target.form && (e.target.form.id === 'calcForm' || e.target.form.id === 'hParamsForm')) {
+                saveFormState();
+            }
+        });
+
+        // Restore on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            restoreFormState();
+        });
+
+        // ================================================================
+        // Оставляем панель настроек открытой после действий
+        // ================================================================
+        const H_PARAMS_COOKIE = 'contour_hparams_open';
+
+        function saveHPanelState(open) {
+            try {
+                localStorage.setItem(H_PARAMS_COOKIE, open ? '1' : '0');
+            } catch (e) {
+                // ignore
+            }
+        }
+
+        function getHPanelState() {
+            try {
+                return localStorage.getItem(H_PARAMS_COOKIE) === '1';
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // === Вспомогательные функции ===
         function showSpinner() {
             document.querySelector('.spinner-overlay').style.display = 'flex';
         }
@@ -487,7 +598,7 @@
             const modalImage = document.getElementById('configImage');
             const configName = document.getElementById('configName');
             if (modalTitle) {
-                modalTitle.textContent = `Справка по конфигурации: ${selectedText}`;
+                modalTitle.textContent = 'Справка по конфигурации: ' + selectedText;
             }
             if (modalImage) {
                 modalImage.src = selectedImage || '';
@@ -496,6 +607,39 @@
                 configName.textContent = selectedText;
             }
         }
+
+        // ================================================================
+        // Инициализация состояния панели настроек
+        // ================================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            const hParamsToggle = document.getElementById('hParamsToggle');
+            const hParamsCollapse = document.getElementById('hParams');
+
+            // Restore panel state
+            if (getHPanelState()) {
+                hParamsCollapse.classList.add('show');
+            }
+
+            // Сохраняем состояние при переключении
+            if (hParamsCollapse) {
+                hParamsCollapse.addEventListener('shown.bs.collapse', function() {
+                    saveHPanelState(true);
+                });
+                hParamsCollapse.addEventListener('hidden.bs.collapse', function() {
+                    saveHPanelState(false);
+                });
+            }
+
+            // Инициализация configHidden при загрузке страницы
+            const configSelect = document.getElementById('config');
+            const selectedOption = configSelect.options[configSelect.selectedIndex];
+            syncConfigFields(
+                configSelect.value,
+                selectedOption.text,
+                selectedOption.dataset.image || '',
+                selectedOption.dataset.user || '0'
+            );
+        });
 
         // Обработчик для изменения конфигурации
         const configSelect = document.getElementById('config');
@@ -513,7 +657,7 @@
         // Обработчик для изменения полей H в hParamsForm
         const hParamsForm = document.getElementById('hParamsForm');
         const hParamFieldNames = ['j_x', 'c_x', 'cd_len', 'de_len', 'fg_len', 'gh_len', 'hi_len', 'jk_len', 'hcor'];
-        Array.from(hParamsForm.elements).forEach(element => {
+        Array.from(hParamsForm.elements).forEach(function(element) {
             if (element.name && hParamFieldNames.includes(element.name)) {
                 element.addEventListener('input', function() {
                     configSelect.value = 'Пользовательская конфигурация';
@@ -554,7 +698,7 @@
         document.getElementById('calcForm').addEventListener('submit', function() {
             const hParamsForm = document.getElementById('hParamsForm');
             const calcForm = this;
-            Array.from(hParamsForm.elements).forEach(element => {
+            Array.from(hParamsForm.elements).forEach(function(element) {
                 if (element.name && element.value && element.type !== 'hidden') {
                     const input = document.createElement('input');
                     input.type = 'hidden';
@@ -563,17 +707,6 @@
                     calcForm.appendChild(input);
                 }
             });
-        });
-
-        // Инициализация configHidden при загрузке страницы
-        document.addEventListener('DOMContentLoaded', function() {
-            const selectedOption = configSelect.options[configSelect.selectedIndex];
-            syncConfigFields(
-                configSelect.value,
-                selectedOption.text,
-                selectedOption.dataset.image || '',
-                selectedOption.dataset.user || '0'
-            );
         });
     </script>
     <footer class="text-center mt-5 mb-3 text-muted">

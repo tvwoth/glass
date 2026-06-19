@@ -2,18 +2,21 @@
 
 ## Установка
 
-### Через Docker (рекомендуется)
+### Автоматическая установка (рекомендуется)
 
 ```bash
-sudo apt update && sudo apt install curl -y
-curl -O https://raw.githubusercontent.com/tvwoth/glass/main/install.sh
-chmod +x install.sh
 sudo ./install.sh
 ```
 
-Скрипт установит Docker, клонирует репозиторий в `/opt/glass`, соберёт и запустит контейнеры.
+Скрипт автоматически:
+1. Определит дистрибутив и пакетный менеджер
+2. Проверит доступность сети
+3. Установит необходимые компоненты (git, curl, docker, docker compose)
+4. Клонирует репозиторий в `/opt/glass`
+5. Запросит порт приложения и пароль администратора
+6. Запустит Docker-стек
 
-### Вручную
+### Ручная установка
 
 ```bash
 python -m venv .venv
@@ -24,51 +27,111 @@ python -m app
 
 Приложение будет доступно на `http://localhost:5000`.
 
+### Поддерживаемые системы
+
+| Дистрибутив | Версии | Пакетный менеджер |
+|-------------|--------|-------------------|
+| Ubuntu      | 22.04 LTS, 24.04 LTS, 26.04 LTS | apt |
+| Debian      | 12, 13 | apt |
+| Linux Mint  | актуальные на базе Ubuntu LTS | apt |
+| Arch Linux  | rolling release | pacman |
+| Fedora      | 40+ | dnf |
+| AlmaLinux   | 9+ | dnf |
+| Rocky Linux | 9+ | dnf |
+
 ---
 
 ## Обновление
 
-### Через Docker
+### Автоматическое обновление (рекомендуется)
 
 ```bash
-cd /opt/glass
 sudo ./update.sh
 # Или глобально:
-sudo glass-update
+sudo contour-update
 ```
 
-### Вручную
+Перед обновлением автоматически создаётся резервная копия в `backup/YYYY-MM-DD_HH-MM-SS/`:
+- `configs/` — пользовательские конфигурации
+- `storage/` — файлы хранилища
+- `exports/` — экспортированные файлы
+- `.env` — файл окружения
+
+При ошибке обновление останавливается, резервная копия сохраняется.
+
+### Ручное обновление
 
 ```bash
 cd /opt/glass
 git pull
-pip install -r requirements.txt
+docker compose up -d --build
 ```
+
+---
+
+## Удаление
+
+```bash
+sudo ./uninstall.sh
+# Или:
+sudo contour-uninstall
+```
+
+Перед удалением скрипт предложит сохранить пользовательские данные. Для автоматического удаления без подтверждения:
+
+```bash
+sudo ./uninstall.sh --force
+```
+
+---
+
+## Смена пароля администратора
+
+```bash
+sudo ./change-admin-password.sh
+# Или глобально:
+sudo contour-change-password
+```
+
+Пароль хешируется с использованием werkzeug.security и сохраняется в `.env` как `CONFIG_ADMIN_PASSWORD`.
+
+## Сброс пароля администратора
+
+```bash
+sudo ./reset-admin-password.sh
+# Или глобально:
+sudo contour-reset-password
+```
+
+Сброс возможен только локально на сервере. После сброса пароль = `admin`.
 
 ---
 
 ## Резервное копирование
 
-### Пользовательские конфигурации
+### Автоматическое резервирование (update.sh)
 
-```bash
-# Копирование пользовательских конфигураций
-cp -r /opt/glass/app/user_configs /backup/user_configs_$(date +%Y%m%d)
+При каждом запуске `update.sh` автоматически создаётся резервная копия:
 
-# Или через Docker volume
-docker cp glass-app:/app/user_configs /backup/user_configs_$(date +%Y%m%d)
+```
+backup/YYYY-MM-DD_HH-MM-SS/
+├── configs/       # пользовательские конфигурации
+├── storage/       # файлы хранилища
+├── exports/       # экспортированные файлы
+└── .env           # файл окружения
 ```
 
-### Полное резервное копирование
+Резервные копии не удаляются автоматически.
+
+### Ручное резервное копирование
 
 ```bash
-# Остановите контейнеры
+# Пользовательские конфигурации
+cp -r /opt/glass/app/user_configs /backup/user_configs_$(date +%Y%m%d)
+
+# Полное резервирование
 cd /opt/glass && docker compose down
-
-# Архивируйте
 tar -czf /backup/glass_$(date +%Y%m%d).tar.gz /opt/glass
-
-# Запустите обратно
 docker compose up -d
 ```
 
@@ -79,6 +142,9 @@ docker compose up -d
 ```bash
 # Распакуйте архив
 tar -xzf /backup/glass_20260616.tar.gz -C /
+
+# Если были сохранены пользовательские конфигурации
+cp -r /backup/user_configs_20260616/* /opt/glass/app/user_configs/
 
 # Пересоберите и запустите
 cd /opt/glass
@@ -108,7 +174,7 @@ docker compose logs -f nginx
 ### Логи systemd (автообновление)
 
 ```bash
-journalctl -u glass-update.service -f
+journalctl -u contour-update.service -f
 ```
 
 ---
@@ -145,7 +211,7 @@ python -m pytest tests/test_core_calculator.py -v
 python -m pytest tests/test_calculate_wrapper.py -v
 ```
 
-Все 50 тестов должны пройти успешно.
+Все тесты должны пройти успешно.
 
 ---
 
@@ -207,37 +273,32 @@ export_csv(result, 'output.csv')
 
 ---
 
-## Смена пароля администратора
-
-```bash
-cd /opt/glass
-sudo ./change-password.sh
-# Или глобально:
-sudo glass-change-password
-```
-
-Пароль хранится в `.env` как `CONFIG_ADMIN_PASSWORD`.
-
----
-
 ## Автообновление (systemd)
 
+Автообновление настраивается во время установки. Для ручной настройки:
+
 ```bash
-sudo cp glass-update.service glass-update.timer /etc/systemd/system/
+sudo cp /opt/glass/contour-update.service /opt/glass/contour-update.timer /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now glass-update.timer
+sudo systemctl enable --now contour-update.timer
 ```
 
 Таймер запускает `update.sh` раз в сутки.
 
 ---
 
-## Полное удаление
+## Структура резервных копий
 
-```bash
-sudo glass-uninstall
-# Или:
-cd /opt/glass && sudo ./uninstall.sh
+```
+backup/
+├── 2026-06-19_12-00-00/
+│   ├── configs/       # пользовательские конфигурации
+│   ├── storage/       # файлы хранилища
+│   ├── exports/       # экспортированные файлы
+│   └── .env           # файл окружения
+├── 2026-06-20_12-00-00/
+│   └── ...
+└── ...
 ```
 
-Скрипт остановит контейнеры, удалит systemd-юниты и директорию `/opt/glass`.
+Резервные копии не удаляются автоматически. Рекомендуется периодически очищать старые копии вручную.

@@ -1,116 +1,137 @@
-# Contour App
+# Contour Glass
 
-> Веб-приложение для расчёта и визуализации геометрии конструкции стеклянного навеса (Козырька).
-> Расчёт выполняется по трём из четырёх заданных параметров (n1, n2, n3, angle_EF),
-> четвёртый вычисляется автоматически.
+Веб-приложение для расчёта геометрии контура конструкции стеклянного козырька (стеклянного навеса).
 
----
+## Возможности
 
-## Основные возможности
+- Расчёт контура конструкции стеклянного козырька (точки A–K)
+- Работа с системными и пользовательскими конфигурациями
+- Экспорт результатов в PDF, CSV, JSON
+- Построение графика контура
+- Защита конфигураций паролем администратора
 
-* Расчёт контура стеклопакета (точки A–K)
-* Работа с системными и пользовательскими конфигурациями
-* Экспорт результатов в PDF, JSON и CSV
-* Веб-интерфейс на Flask
-* REST API (`POST /api/calculate`)
-* CLI (`python -m app.cli`)
-
----
-
-## Быстрый запуск
-
-### Установка зависимостей
+## Быстрая установка
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate   # Linux/macOS
-# или .venv\Scripts\activate  # Windows
-pip install -r requirements.txt
+git clone https://github.com/tvwoth/glass.git
+cd glass
+sudo ./install.sh
 ```
 
-### Запуск приложения
+После установки приложение будет доступно по адресу `http://<IP_СЕРВЕРА>:<ПОРТ>`.
+
+## Поддерживаемые системы
+
+| Дистрибутив | Версии | Пакетный менеджер |
+|-------------|--------|-------------------|
+| Ubuntu      | 22.04 LTS, 24.04 LTS, 26.04 LTS | apt |
+| Debian      | 12, 13 | apt |
+| Linux Mint  | актуальные на базе Ubuntu LTS | apt |
+| Arch Linux  | rolling release | pacman |
+| Fedora      | 40+ | dnf |
+| AlmaLinux   | 9+ | dnf |
+| Rocky Linux | 9+ | dnf |
+
+## Команды
+
+| Команда | Описание |
+|---------|----------|
+| `contour-install` | Установка приложения |
+| `contour-update` | Обновление приложения |
+| `contour-uninstall` | Удаление приложения |
+| `contour-change-password` | Смена пароля администратора |
+| `contour-reset-password` | Сброс пароля администратора |
+
+## Управление
+
+### Установка
 
 ```bash
-python -m app
-# Приложение доступно на http://localhost:5000
+sudo ./install.sh
 ```
 
-### Запуск через Docker
+Скрипт автоматически:
+1. Определит дистрибутив и пакетный менеджер
+2. Проверит доступность сети
+3. Установит необходимые компоненты (git, curl, docker, docker compose)
+4. Клонирует репозиторий в `/opt/glass`
+5. Запросит порт приложения и пароль администратора
+6. Запустит Docker-стек
+
+Скрипт идемпотентен — повторный запуск не удаляет данные и конфигурации.
+
+### Обновление
 
 ```bash
-docker compose up -d --build
-# Приложение доступно на http://localhost
+sudo ./update.sh
 ```
 
----
+Перед обновлением автоматически создаётся резервная копия:
+- `configs/` — пользовательские конфигурации
+- `storage/` — файлы хранилища
+- `exports/` — экспортированные файлы
+- `.env` — файл окружения
 
-## Структура проекта
+Структура резервных копий: `backup/YYYY-MM-DD_HH-MM-SS/`
 
-```
-contour-app/
-├── app/
-│   ├── __init__.py              # Flask-приложение
-│   ├── cli.py                   # Командная строка (CLI)
-│   ├── api/
-│   │   └── routes.py            # REST API
-│   ├── configs/                 # Единый менеджер конфигураций
-│   │   ├── manager.py           # ConfigManager (CRUD)
-│   │   └── helpers.py           # parse_h_params, apply_h_params
-│   ├── core/
-│   │   ├── calculator.py        # Единственный источник математики
-│   │   ├── calculate.py         # Обёртка-интерфейс
-│   │   └── exceptions.py        # Кастомные исключения
-│   ├── legacy/
-│   │   └── contour_calculator.py # Оригинальная реализация (для тестов)
-│   ├── rendering/
-│   │   └── matplotlib_renderer.py # Визуализация графика
-│   ├── storage/
-│   │   ├── export_json.py       # Экспорт в JSON
-│   │   ├── export_csv.py        # Экспорт в CSV
-│   │   └── export_pdf.py        # Экспорт в PDF
-│   ├── templates/               # HTML-шаблоны
-│   ├── static/                  # Статические файлы
-│   └── user_configs/            # Пользовательские конфигурации
-├── tests/
-│   ├── test_calculate_wrapper.py
-│   ├── test_contour_calculator.py
-│   └── test_core_calculator.py
-├── docs/
-│   └── API.md                   # Спецификация API
-├── docker-compose.yml
-├── Dockerfile
-├── requirements.txt
-└── .env.example
-```
+При ошибке обновление останавливается, резервная копия сохраняется.
 
----
-
-## Ссылки на документацию
-
-| Документ | Назначение |
-|----------|-----------|
-| [USER_GUIDE.md](USER_GUIDE.md) | Руководство пользователя |
-| [ADMIN_GUIDE.md](ADMIN_GUIDE.md) | Руководство администратора |
-| [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) | Руководство разработчика |
-| [CONFIG_FORMAT.md](CONFIG_FORMAT.md) | Спецификация формата конфигураций |
-| [docs/API.md](docs/API.md) | Спецификация REST API |
-
----
-
-## Краткая сводка CLI
+### Удаление
 
 ```bash
-python -m app.cli calculate config.json
-python -m app.cli render config.json [output.png]
-python -m app.cli export-pdf config.json [output.pdf]
-python -m app.cli config-list
-python -m app.cli config-edit <name> [param=value ...]
+sudo ./uninstall.sh
 ```
 
-Подробное описание — в [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md#cli).
+Перед удалением скрипт предложит сохранить пользовательские данные.
 
----
+### Смена пароля
+
+```bash
+sudo ./change-admin-password.sh
+```
+
+### Сброс пароля
+
+```bash
+sudo ./reset-admin-password.sh
+```
+
+Сброс возможен только локально на сервере. После сброса пароль = `admin`.
+
+## Архитектура
+
+```
+Пользователь
+    ↓
+IP:PORT
+    ↓
+Nginx
+    ↓
+Flask
+    ↓
+Core (Calculator)
+```
+
+- **Nginx** — обратный прокси
+- **Flask** — веб-приложение
+- **Core** — математический движок (единственный источник вычислений)
+
+## Защита конфигураций
+
+Пароль администратора требуется для:
+- Создания конфигурации
+- Редактирования конфигурации
+- Удаления конфигурации
+- Импорта конфигурации
+- Переименования конфигурации
+
+Пароль **не требуется** для:
+- Расчётов
+- Просмотра результатов
+- Экспорта PDF, CSV, JSON
+- Работы с графиками
+- Выбора конфигурации
 
 ## Лицензия
 
-Проект Glass / Contour App.
+MIT

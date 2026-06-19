@@ -2,62 +2,48 @@
 
 ################################################################################
 #                                                                              #
-#  uninstall.sh — полное удаление приложения Glass с сервера                 #
+#  uninstall.sh — удаление Contour Glass с сервера                            #
 #                                                                              #
-#  НАЗНАЧЕНИЕ:                                                                #
-#  Скрипт удаляет все следы установки Glass:                                  #
-#  • Останавливает и удаляет Docker-контейнеры, volumes, networks            #
-#  • Отключает и удаляет systemd-юниты для автообновления                    #
-#  • Удаляет директорию проекта /opt/glass                                   #
-#  • Выводит инструкции для ручной очистки Nginx                             #
+#  Действия:                                                                   #
+#    • запрос подтверждения                                                    #
+#    • предложение сохранить пользовательские данные                           #
+#    • остановка и удаление Docker-контейнеров, volumes, networks              #
+#    • отключение и удаление systemd-юнитов                                    #
+#    • удаление директории проекта /opt/glass                                  #
+#    • удаление глобальных команд                                              #
 #                                                                              #
-#  ИСПОЛЬЗОВАНИЕ:                                                             #
-#  sudo ./uninstall.sh              # Требует подтверждения                  #
-#  sudo ./uninstall.sh --force      # Запускает без подтверждения            #
-#                                                                              #
-#  БЕЗОПАСНОСТЬ:                                                              #
-#  • Требует прав root (sudo)                                                 #
-#  • Проверяет существование директорий перед удалением                      #
-#  • Игнорирует некритичные ошибки (полусообщения)                           #
-#  • Идемпотентен (можно запускать несколько раз)                            #
+#  Использование:                                                              #
+#    sudo ./uninstall.sh              # Требует подтверждения                  #
+#    sudo ./uninstall.sh --force      # Запускает без подтверждения            #
 #                                                                              #
 ################################################################################
 
 set -euo pipefail
 
 # ============================================================================
-# Цветные выводы
+# Цвета
 # ============================================================================
-
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m'  # No Color
+NC='\033[0m'
 
-log_success() {
-    echo -e "${GREEN}✓${NC} $1"
-}
-
-log_error() {
-    echo -e "${RED}✗${NC} $1" >&2
-}
-
-log_warning() {
-    echo -e "${YELLOW}⚠${NC} $1"
-}
-
-log_info() {
-    echo -e "${BLUE}→${NC} $1"
-}
+log()     { echo -e "${BLUE}[contour-uninstall]${NC} $*"; }
+success() { echo -e "${GREEN}[contour-uninstall]${NC} $*"; }
+error()   { echo -e "${RED}[contour-uninstall] ОШИБКА:${NC} $*" >&2; }
+warn()    { echo -e "${YELLOW}[contour-uninstall]${NC} $*"; }
 
 # ============================================================================
-# Проверки и функции
+# Функции
 # ============================================================================
 
 require_root() {
     if [[ $EUID -ne 0 ]]; then
-        log_error "Этот скрипт должен запускаться с правами root (sudo)."
+        if command -v sudo >/dev/null 2>&1; then
+            exec sudo bash "$0" "$@"
+        fi
+        error "Запустите скрипт с правами root (sudo)."
         exit 1
     fi
 }
@@ -65,15 +51,16 @@ require_root() {
 confirm_action() {
     local prompt="$1"
     local force_mode="${2:-false}"
-    
+
     if [[ "$force_mode" == "true" ]]; then
         return 0
     fi
-    
+
+    local resp
     echo -ne "${YELLOW}⚠${NC} $prompt (введите 'yes' для подтверждения): "
-    read -r response
-    if [[ "$response" != "yes" ]]; then
-        log_info "Отмена操作."
+    read -r resp
+    if [[ "$resp" != "yes" ]]; then
+        log "Удаление отменено."
         exit 0
     fi
 }
@@ -86,153 +73,172 @@ file_exists() {
     [[ -f "$1" ]]
 }
 
-systemd_unit_exists() {
-    systemctl list-unit-files | grep -q "^$1" 2>/dev/null || false
-}
-
 # ============================================================================
-# Основная логика удаления
+# Основная логика
 # ============================================================================
 
 main() {
     local force_mode=false
-    
-    # Обработка флага --force
+
     if [[ "${1:-}" == "--force" ]]; then
         force_mode=true
     fi
-    
-    # Проверка прав
+
     require_root
-    
-    log_info "=========================================="
-    log_info "  Удаление приложения Glass"
-    log_info "=========================================="
+
     echo ""
-    
-    # Шаг 1: Проверить существование директории проекта
-    if ! directory_exists "/opt/glass"; then
-        log_warning "Директория /opt/glass не найдена."
-        log_info "Приложение уже удалено или не был установлено."
+    echo -e "${RED}============================================${NC}"
+    echo -e "${RED}  Удаление Contour Glass${NC}"
+    echo -e "${RED}============================================${NC}"
+    echo ""
+
+    APP_DIR="/opt/glass"
+
+    if ! directory_exists "$APP_DIR"; then
+        warn "Директория $APP_DIR не найдена."
+        log "Приложение уже удалено или не было установлено."
         exit 0
     fi
-    
-    log_success "Найдена директория /opt/glass"
+
+    success "Найдена директория $APP_DIR"
     echo ""
-    
-    confirm_action "Удалить полностью приложение Glass?" "$force_mode"
+
+    # ------------------------------------------------------------------
+    # 1. Предложение сохранить пользовательские данные
+    # ------------------------------------------------------------------
+    local save_data=false
+    if [[ "$force_mode" != "true" ]]; then
+        local resp
+        read -r -p "${YELLOW}Сохранить пользовательские конфигурации перед удалением? (yes/no): ${NC}" resp
+        if [[ "$resp" == "yes" ]]; then
+            save_data=true
+            local backup_dir="${HOME}/contour-backup-$(date +%Y-%m-%d_%H-%M-%S)"
+            log "Сохранение пользовательских данных в ${backup_dir}..."
+
+            mkdir -p "$backup_dir"
+
+            if [[ -d "${APP_DIR}/app/user_configs" ]] && [[ -n "$(ls -A "${APP_DIR}/app/user_configs" 2>/dev/null)" ]]; then
+                cp -r "${APP_DIR}/app/user_configs" "${backup_dir}/configs" 2>/dev/null || true
+                log "  configs/ сохранены"
+            fi
+
+            if [[ -d "${APP_DIR}/storage" ]] && [[ -n "$(ls -A "${APP_DIR}/storage" 2>/dev/null)" ]]; then
+                cp -r "${APP_DIR}/storage" "${backup_dir}/storage" 2>/dev/null || true
+                log "  storage/ сохранён"
+            fi
+
+            if [[ -d "${APP_DIR}/exports" ]] && [[ -n "$(ls -A "${APP_DIR}/exports" 2>/dev/null)" ]]; then
+                cp -r "${APP_DIR}/exports" "${backup_dir}/exports" 2>/dev/null || true
+                log "  exports/ сохранены"
+            fi
+
+            if [[ -f "${APP_DIR}/.env" ]]; then
+                cp "${APP_DIR}/.env" "${backup_dir}/.env" 2>/dev/null || true
+                log "  .env сохранён"
+            fi
+
+            success "Пользовательские данные сохранены в: ${backup_dir}"
+        fi
+    fi
+
+    # ------------------------------------------------------------------
+    # 2. Подтверждение удаления
+    # ------------------------------------------------------------------
+    confirm_action "Удалить полностью приложение Contour Glass?" "$force_mode"
     echo ""
-    
-    # Шаг 2: Остановить Docker-контейнеры
-    log_info "Останавливаем Docker-контейнеры..."
-    if directory_exists "/opt/glass" && file_exists "/opt/glass/docker-compose.yml"; then
-        cd "/opt/glass"
-        
-        # Пытаемся остановить контейнеры (ошибка не критична)
+
+    # ------------------------------------------------------------------
+    # 3. Остановка Docker-контейнеров
+    # ------------------------------------------------------------------
+    log "Останавливаем Docker-контейнеры..."
+    if directory_exists "$APP_DIR" && file_exists "${APP_DIR}/docker-compose.yml"; then
+        cd "$APP_DIR"
         if docker compose down -v --remove-orphans 2>/dev/null || docker-compose down -v --remove-orphans 2>/dev/null || true; then
-            log_success "Docker-контейнеры остановлены и удалены (включая volumes)"
+            success "Docker-контейнеры остановлены и удалены."
         else
-            log_warning "Не удалось остановить контейнеры (возможно, Docker уже остановлен)"
+            warn "Не удалось остановить контейнеры."
         fi
     else
-        log_warning "docker-compose.yml не найден, пропускаем остановку контейнеров"
+        warn "docker-compose.yml не найден, пропускаем."
     fi
-    
-    # Шаг 2.1: Удаление Nginx-конфигов
-    log_info "Удаляем конфиги Nginx (если существуют)..."
-    rm -f /etc/nginx/sites-enabled/contour* /etc/nginx/sites-available/contour* /etc/nginx/sites-enabled/glass* /etc/nginx/sites-available/glass* 2>/dev/null || true
+
+    # ------------------------------------------------------------------
+    # 4. Удаление Nginx-конфигов
+    # ------------------------------------------------------------------
+    log "Удаляем конфиги Nginx..."
+    rm -f /etc/nginx/sites-enabled/contour* /etc/nginx/sites-available/contour* \
+          /etc/nginx/sites-enabled/glass* /etc/nginx/sites-available/glass* 2>/dev/null || true
     systemctl reload nginx 2>/dev/null || true
-    log_success "Конфиги Nginx удалены и nginx перезагружен (если установлен)"
-    
-    echo ""
-    
-    # Шаг 3: Отключить и удалить systemd-юниты
-    log_info "Отключаем и удаляем systemd-юниты..."
-    
+    success "Конфиги Nginx удалены."
+
+    # ------------------------------------------------------------------
+    # 5. Отключение и удаление systemd-юнитов
+    # ------------------------------------------------------------------
+    log "Отключаем и удаляем systemd-юниты..."
+
     local units_to_remove=(
-        "glass-update.timer"
-        "glass-update.service"
-        "glass.service"
         "contour-update.timer"
         "contour-update.service"
         "contour.service"
+        "glass-update.timer"
+        "glass-update.service"
+        "glass.service"
     )
-    
-    local units_removed=false
-    
+
     for unit in "${units_to_remove[@]}"; do
         if systemctl is-enabled "$unit" &>/dev/null 2>&1 || systemctl is-active "$unit" &>/dev/null 2>&1; then
-            log_info "  • Отключаем и удаляем $unit..."
+            log "  • $unit..."
             systemctl stop "$unit" 2>/dev/null || true
             systemctl disable "$unit" 2>/dev/null || true
-            
-            if file_exists "/etc/systemd/system/$unit"; then
-                rm -f "/etc/systemd/system/$unit"
-                units_removed=true
-                log_success "    $unit удалена"
-            fi
+            rm -f "/etc/systemd/system/$unit" 2>/dev/null || true
+            success "    $unit удалена"
         fi
     done
-    
-    if [[ "$units_removed" == "true" ]]; then
-        log_info "  • Перезагружаем systemd..."
-        systemctl daemon-reload
-        systemctl reset-failed || true
-        log_success "systemd-юниты удалены и systemd перезагружены"
+
+    systemctl daemon-reload 2>/dev/null || true
+    systemctl reset-failed 2>/dev/null || true
+
+    # ------------------------------------------------------------------
+    # 6. Удаление директории проекта
+    # ------------------------------------------------------------------
+    log "Удаляем директорию проекта..."
+    if directory_exists "$APP_DIR"; then
+        rm -rf "$APP_DIR"
+        success "$APP_DIR полностью удалена"
     else
-        log_warning "systemd-юниты не найдены (возможно, уже удалены)"
-    fi
-    
-    echo ""
-    
-    # Шаг 4: Удалить директорию проекта
-    log_info "Удаляем директорию проекта..."
-    if directory_exists "/opt/glass"; then
-        rm -rf "/opt/glass"
-        log_success "/opt/glass полностью удалена"
-    else
-        log_warning "Директория /opt/glass уже не существует"
+        warn "Директория $APP_DIR уже не существует"
     fi
 
-    log_info "Удаляем команды из /usr/local/bin..."
-    rm -f /usr/local/bin/glass-install /usr/local/bin/glass-update /usr/local/bin/glass-uninstall /usr/local/bin/glass-change-password /usr/local/bin/contour-install /usr/local/bin/contour-update /usr/local/bin/contour-uninstall /usr/local/bin/contour-change-password 2>/dev/null || true
-    log_success "Глобальные команды удалены"
+    # ------------------------------------------------------------------
+    # 7. Удаление глобальных команд
+    # ------------------------------------------------------------------
+    log "Удаляем команды из /usr/local/bin..."
+    rm -f /usr/local/bin/contour-install /usr/local/bin/contour-update \
+          /usr/local/bin/contour-uninstall /usr/local/bin/contour-change-password \
+          /usr/local/bin/contour-reset-password \
+          /usr/local/bin/glass-install /usr/local/bin/glass-update \
+          /usr/local/bin/glass-uninstall /usr/local/bin/glass-change-password 2>/dev/null || true
+    success "Глобальные команды удалены."
 
-    # по желанию очистим Docker
+    # ------------------------------------------------------------------
+    # 8. Очистка Docker (опционально)
+    # ------------------------------------------------------------------
     if confirm_action "Очистить неиспользуемые объекты Docker (prune)?" "$force_mode"; then
-        log_info "Выполняем docker system prune --volumes..."
+        log "Выполняем docker system prune --volumes..."
         docker system prune -f --volumes 2>/dev/null || true
-        log_success "Docker очищен"
+        success "Docker очищен."
     fi
-    
+
     echo ""
-    
-    # Шаг 5: Информация о ручной очистке
-    log_warning "=========================================="
-    log_warning "  ТРЕБУЕТСЯ РУЧНАЯ ОЧИСТКА"
-    log_warning "=========================================="
+    success "============================================"
+    success "  Приложение Contour Glass успешно удалено!"
+    success "============================================"
     echo ""
-    log_info "Nginx:"
-    log_info "  1. Конфиги Nginx уже удалены автоматически, но проверьте их наличие и удалите вручную, если остались:"
-    log_info "     sudo rm -f /etc/nginx/sites-enabled/contour*"
-    log_info "     sudo rm -f /etc/nginx/sites-available/contour*"
-    log_info ""
-    log_info "  2. Проверьте/обновите конфиг Nginx:"
-    log_info "     sudo nginx -t  # Проверка синтаксиса"
-    log_info "     sudo systemctl reload nginx  # Перезагрузка"
+
+    if [[ "$save_data" == "true" ]]; then
+        log "Пользовательские данные сохранены. Для восстановления скопируйте их обратно."
+    fi
     echo ""
-    log_info "Docker (опционально):"
-    log_info "  Если Docker больше не нужен, удалите его:"
-    log_info "     sudo apt remove -y docker.io docker-compose docker-compose-plugin"
-    log_info "     sudo docker system prune -a -f"
-    echo ""
-    
-    # Итоговое сообщение
-    echo ""
-    log_success "=========================================="
-    log_success "  Приложение Glass успешно удалено!"
-    log_success "=========================================="
 }
 
-# Запуск
 main "$@"
