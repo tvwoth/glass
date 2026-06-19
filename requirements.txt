@@ -1,3 +1,4 @@
 Flask==3.1.1
 matplotlib==3.10.1
 gunicorn==23.0.0
+werkzeug==3.1.3

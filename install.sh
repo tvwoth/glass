@@ -389,18 +389,24 @@ main() {
             ensure_component "python3" "Python 3" "$DISTRO" "$PKG_MANAGER" "python3"
             # openssl для генерации SECRET_KEY
             ensure_component "openssl" "OpenSSL" "$DISTRO" "$PKG_MANAGER" "openssl"
+            # werkzeug для хеширования паролей
+            ensure_component "python3" "Werkzeug" "$DISTRO" "$PKG_MANAGER" "python3-werkzeug"
             ;;
         pacman)
             ensure_component "git"    "Git"    "$DISTRO" "$PKG_MANAGER" "git"
             ensure_component "curl"   "curl"   "$DISTRO" "$PKG_MANAGER" "curl"
             ensure_component "python3" "Python 3" "$DISTRO" "$PKG_MANAGER" "python"
             ensure_component "openssl" "OpenSSL" "$DISTRO" "$PKG_MANAGER" "openssl"
+            # werkzeug для хеширования паролей
+            ensure_component "python3" "Werkzeug" "$DISTRO" "$PKG_MANAGER" "python-werkzeug"
             ;;
         dnf)
             ensure_component "git"    "Git"    "$DISTRO" "$PKG_MANAGER" "git"
             ensure_component "curl"   "curl"   "$DISTRO" "$PKG_MANAGER" "curl"
             ensure_component "python3" "Python 3" "$DISTRO" "$PKG_MANAGER" "python3"
             ensure_component "openssl" "OpenSSL" "$DISTRO" "$PKG_MANAGER" "openssl"
+            # werkzeug для хеширования паролей
+            ensure_component "python3" "Werkzeug" "$DISTRO" "$PKG_MANAGER" "python3-werkzeug"
             ;;
     esac
 
