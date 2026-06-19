@@ -62,7 +62,10 @@ check_cmd() {
 confirm() {
     local msg="$1"
     local resp
-    printf "%s [y/N]: " "${msg}"
+    # Strip ANSI escape sequences to avoid raw codes appearing in read prompt
+    local clean_msg
+    clean_msg=$(echo "$msg" | sed 's/\033\[[0-9;]*m//g')
+    echo -n "${clean_msg} [y/N]: "
     read -r resp
     [[ "$resp" == "y" || "$resp" == "yes" ]]
 }
@@ -484,13 +487,15 @@ main() {
     echo ""
     echo "Настройка пароля администратора:"
     while true; do
-        read -rsp "Введите пароль администратора (минимум 4 символа): " ADMIN_PW
+        echo -n "Введите пароль администратора (минимум 4 символа): "
+        read -rs ADMIN_PW
         echo
         if [[ ${#ADMIN_PW} -lt 4 ]]; then
             echo -e "${YELLOW}Ошибка: пароль должен содержать минимум 4 символа.${NC}"
             continue
         fi
-        read -rsp "Повторите пароль: " ADMIN_PW2
+        echo -n "Повторите пароль: "
+        read -rs ADMIN_PW2
         echo
         if [[ "$ADMIN_PW" != "$ADMIN_PW2" ]]; then
             echo -e "${YELLOW}Ошибка: пароли не совпадают.${NC}"

@@ -141,10 +141,12 @@ main() {
     # ------------------------------------------------------------------
     if [[ -f .env ]]; then
         if ! grep -q '^CONFIG_ADMIN_PASSWORD=' .env 2>/dev/null; then
-            read -rsp "Пароль администратора отсутствует. Введите пароль (Enter = admin): " ADMIN_PW
+            echo -n "Пароль администратора отсутствует. Введите пароль (Enter = admin): "
+            read -rs ADMIN_PW
             echo
             ADMIN_PW=${ADMIN_PW:-admin}
-            echo "CONFIG_ADMIN_PASSWORD=${ADMIN_PW}" >> .env
+            HASHED_PW=$(python3 -c "import werkzeug.security; print(werkzeug.security.generate_password_hash('${ADMIN_PW}'))")
+            echo "CONFIG_ADMIN_PASSWORD=${HASHED_PW}" >> .env
             success "Пароль администратора добавлен в .env"
         fi
         if ! grep -q '^SECRET_KEY=' .env 2>/dev/null; then

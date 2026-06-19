@@ -26,13 +26,15 @@ if ! python3 -c "import werkzeug" 2>/dev/null; then
 fi
 
 while true; do
-    read -rsp "Введите новый пароль администратора (минимум 4 символа): " NEW_PW
+    echo -n "Введите новый пароль администратора (минимум 4 символа): "
+    read -rs NEW_PW
     echo
     if [[ ${#NEW_PW} -lt 4 ]]; then
         echo -e "${YELLOW}Ошибка: пароль должен содержать минимум 4 символа.${NC}"
         continue
     fi
-    read -rsp "Повторите пароль: " NEW_PW2
+    echo -n "Повторите пароль: "
+    read -rs NEW_PW2
     echo
     if [[ "$NEW_PW" != "$NEW_PW2" ]]; then
         echo -e "${YELLOW}Ошибка: пароли не совпадают.${NC}"
