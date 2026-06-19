@@ -114,10 +114,15 @@ main() {
     # 2. Получение последних изменений из Git
     # ------------------------------------------------------------------
     log "Получаем последние изменения из Git..."
+    # Stash any local changes before pulling
+    git stash push -m "auto-stash before update" 2>/dev/null || true
     if ! git pull --ff-only origin "$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo 'main')"; then
         error "Не удалось обновить код из Git. Резервная копия сохранена: ${backup_path}"
+        git stash pop 2>/dev/null || true
         exit 1
     fi
+    # Restore stashed changes if any
+    git stash pop 2>/dev/null || true
     success "Код обновлён."
 
     # ------------------------------------------------------------------

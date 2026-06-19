@@ -19,10 +19,13 @@ echo -e "${BLUE}============================================${NC}"
 echo ""
 
 if ! python3 -c "import werkzeug" 2>/dev/null; then
-    log_error "werkzeug не установлен. Хеширование пароля невозможно."
-    log_error "Установите: pip install werkzeug"
-    log_error "Или: apt-get install python3-werkzeug (Ubuntu/Debian)"
-    exit 1
+    echo "werkzeug не установлен. Устанавливаем..."
+    pip3 install werkzeug 2>/dev/null || pip install werkzeug 2>/dev/null || \
+        apt-get install -y python3-werkzeug 2>/dev/null || {
+        echo "Не удалось установить werkzeug. Хеширование пароля невозможно."
+        exit 1
+    }
+    echo "werkzeug установлен."
 fi
 
 while true; do

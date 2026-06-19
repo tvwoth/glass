@@ -483,7 +483,7 @@ main() {
         echo "APP_PORT=${APP_PORT}" >> .env
     fi
 
-    # Пароль администратора — всегда запрашиваем
+    # Пароль администратора — всегда запрашиваем (даже если уже задан)
     echo ""
     echo "Настройка пароля администратора:"
     while true; do
@@ -503,6 +503,13 @@ main() {
         fi
         break
     done
+
+    # Установка werkzeug если не установлен
+    if ! python3 -c "import werkzeug" 2>/dev/null; then
+        log "Устанавливаем werkzeug для хеширования паролей..."
+        pip3 install werkzeug 2>/dev/null || pip install werkzeug 2>/dev/null || \
+            apt-get install -y python3-werkzeug 2>/dev/null || true
+    fi
 
     HASHED_PW=$(python3 -c "import werkzeug.security; print(werkzeug.security.generate_password_hash('${ADMIN_PW}'))")
     if grep -q '^CONFIG_ADMIN_PASSWORD=' .env 2>/dev/null; then
@@ -618,7 +625,12 @@ main() {
     echo -e "${GREEN}  Установка завершена${NC}"
     echo -e "${GREEN}============================================${NC}"
     echo ""
-    echo -e "  Адрес:    ${BLUE}http://${ip}:${HOST_HTTP_PORT}${NC}"
+    # Показываем порт только если не стандартный (80)
+    if [[ "$HOST_HTTP_PORT" == "80" ]]; then
+        echo -e "  Адрес:    ${BLUE}http://${ip}${NC}"
+    else
+        echo -e "  Адрес:    ${BLUE}http://${ip}:${HOST_HTTP_PORT}${NC}"
+    fi
     echo ""
     echo -e "  Пароль администратора: ${YELLOW}(указан при установке)${NC}"
     echo ""
