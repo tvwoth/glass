@@ -389,24 +389,66 @@ main() {
             ensure_component "python3" "Python 3" "$DISTRO" "$PKG_MANAGER" "python3"
             # openssl для генерации SECRET_KEY
             ensure_component "openssl" "OpenSSL" "$DISTRO" "$PKG_MANAGER" "openssl"
-            # werkzeug для хеширования паролей
-            ensure_component "python3" "Werkzeug" "$DISTRO" "$PKG_MANAGER" "python3-werkzeug"
+            # werkzeug для хеширования паролей — проверяем модуль, а не команду
+            if ! python3 -c "import werkzeug" 2>/dev/null; then
+                log "Werkzeug не установлен."
+                if confirm "Установить Werkzeug?"; then
+                    install_packages_distro "$DISTRO" "$PKG_MANAGER" "python3-werkzeug"
+                    if ! python3 -c "import werkzeug" 2>/dev/null; then
+                        log "Пробуем установить через pip..."
+                        pip3 install werkzeug 2>/dev/null || pip install werkzeug 2>/dev/null || true
+                    fi
+                else
+                    error "Без Werkzeug установка невозможна."
+                    exit 1
+                fi
+            else
+                log "Werkzeug уже установлен."
+            fi
             ;;
         pacman)
             ensure_component "git"    "Git"    "$DISTRO" "$PKG_MANAGER" "git"
             ensure_component "curl"   "curl"   "$DISTRO" "$PKG_MANAGER" "curl"
             ensure_component "python3" "Python 3" "$DISTRO" "$PKG_MANAGER" "python"
             ensure_component "openssl" "OpenSSL" "$DISTRO" "$PKG_MANAGER" "openssl"
-            # werkzeug для хеширования паролей
-            ensure_component "python3" "Werkzeug" "$DISTRO" "$PKG_MANAGER" "python-werkzeug"
+            # werkzeug для хеширования паролей — проверяем модуль, а не команду
+            if ! python3 -c "import werkzeug" 2>/dev/null; then
+                log "Werkzeug не установлен."
+                if confirm "Установить Werkzeug?"; then
+                    install_packages_distro "$DISTRO" "$PKG_MANAGER" "python-werkzeug"
+                    if ! python3 -c "import werkzeug" 2>/dev/null; then
+                        log "Пробуем установить через pip..."
+                        pip3 install werkzeug 2>/dev/null || pip install werkzeug 2>/dev/null || true
+                    fi
+                else
+                    error "Без Werkzeug установка невозможна."
+                    exit 1
+                fi
+            else
+                log "Werkzeug уже установлен."
+            fi
             ;;
         dnf)
             ensure_component "git"    "Git"    "$DISTRO" "$PKG_MANAGER" "git"
             ensure_component "curl"   "curl"   "$DISTRO" "$PKG_MANAGER" "curl"
             ensure_component "python3" "Python 3" "$DISTRO" "$PKG_MANAGER" "python3"
             ensure_component "openssl" "OpenSSL" "$DISTRO" "$PKG_MANAGER" "openssl"
-            # werkzeug для хеширования паролей
-            ensure_component "python3" "Werkzeug" "$DISTRO" "$PKG_MANAGER" "python3-werkzeug"
+            # werkzeug для хеширования паролей — проверяем модуль, а не команду
+            if ! python3 -c "import werkzeug" 2>/dev/null; then
+                log "Werkzeug не установлен."
+                if confirm "Установить Werkzeug?"; then
+                    install_packages_distro "$DISTRO" "$PKG_MANAGER" "python3-werkzeug"
+                    if ! python3 -c "import werkzeug" 2>/dev/null; then
+                        log "Пробуем установить через pip..."
+                        pip3 install werkzeug 2>/dev/null || pip install werkzeug 2>/dev/null || true
+                    fi
+                else
+                    error "Без Werkzeug установка невозможна."
+                    exit 1
+                fi
+            else
+                log "Werkzeug уже установлен."
+            fi
             ;;
     esac
 
