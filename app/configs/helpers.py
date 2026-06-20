@@ -24,6 +24,7 @@ def parse_h_params(form) -> dict[str, Optional[float]]:
         'hi_len': parse_float('hi_len'),
         'jk_len': parse_float('jk_len'),
         'hcor': parse_float('hcor'),
+        'h9': parse_float('h9'),
     }
 
 
@@ -38,3 +39,4 @@ def apply_h_params(calculator, params: dict[str, Optional[float]]) -> None:
     calculator.set_hi_len(params['hi_len'])
     calculator.set_jk_len(params['jk_len'])
     calculator.set_hcor(params['hcor'])
+    calculator.set_h9(params['h9'])

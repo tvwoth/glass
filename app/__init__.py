@@ -197,6 +197,7 @@ def index():
                     'h6': calculator.GH_LEN,
                     'h7': calculator.HI_LEN,
                     'h8': calculator.JK_LEN,
+                    'h9': calculator.H9,
                     'hcor': calculator.HCOR,
                     'points': points,
                 }

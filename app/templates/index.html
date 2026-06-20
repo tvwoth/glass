@@ -88,6 +88,11 @@
             padding-top: 1rem;
             margin-top: 0.5rem;
         }
+        /* Выделение параметров H3, H6, H7, H8 */
+        .h-param-highlight {
+            color: #d63384;
+            font-weight: 600;
+        }
         @media (max-width: 576px) {
             .h-params-container {
                 max-height: 600px;
@@ -224,7 +229,7 @@
                                             <input type="number" step="any" class="form-control h-param" id="c_x" name="c_x" placeholder="Введите H2" value="{{ abs_c_x | float | round(2) if abs_c_x is not none else '' }}">
                                         </div>
                                         <div class="mb-2">
-                                            <label for="cd_len" class="form-label">H3 (мм)</label>
+                                            <label for="cd_len" class="form-label h-param-highlight">★ H3 (мм)</label>
                                             <input type="number" step="any" class="form-control h-param" id="cd_len" name="cd_len" placeholder="Введите H3" value="{{ calculator.CD_LEN | float | round(2) if calculator.CD_LEN is not none else '' }}">
                                         </div>
                                         <div class="mb-2">
@@ -238,15 +243,15 @@
                                             <input type="number" step="any" class="form-control h-param" id="fg_len" name="fg_len" placeholder="Введите H5" value="{{ calculator.FG_LEN | float | round(2) if calculator.FG_LEN is not none else '' }}">
                                         </div>
                                         <div class="mb-2">
-                                            <label for="gh_len" class="form-label">H6 (мм)</label>
+                                            <label for="gh_len" class="form-label h-param-highlight">★ H6 (мм)</label>
                                             <input type="number" step="any" class="form-control h-param" id="gh_len" name="gh_len" placeholder="Введите H6" value="{{ calculator.GH_LEN | float | round(2) if calculator.GH_LEN is not none else '' }}">
                                         </div>
                                         <div class="mb-2">
-                                            <label for="hi_len" class="form-label">H7 (мм)</label>
+                                            <label for="hi_len" class="form-label h-param-highlight">★ H7 (мм)</label>
                                             <input type="number" step="any" class="form-control h-param" id="hi_len" name="hi_len" placeholder="Введите H7" value="{{ calculator.HI_LEN | float | round(2) if calculator.HI_LEN is not none else '' }}">
                                         </div>
                                         <div class="mb-2">
-                                            <label for="jk_len" class="form-label">H8 (мм)</label>
+                                            <label for="jk_len" class="form-label h-param-highlight">★ H8 (мм)</label>
                                             <input type="number" step="any" class="form-control h-param" id="jk_len" name="jk_len" placeholder="Введите H8" value="{{ calculator.JK_LEN | float | round(2) if calculator.JK_LEN is not none else '' }}">
                                         </div>
                                     </div>
@@ -254,6 +259,10 @@
                                 <div class="mb-2">
                                     <label for="hcor" class="form-label">Hcor (мм)</label>
                                     <input type="number" step="any" class="form-control h-param" id="hcor" name="hcor" placeholder="Введите Hcor" value="{{ calculator.HCOR | float | round(2) if calculator.HCOR is not none else '' }}">
+                                </div>
+                                <div class="mb-2">
+                                    <label for="h9" class="form-label">H9 (мм) — Толщина стекла</label>
+                                    <input type="number" step="any" min="0" class="form-control h-param" id="h9" name="h9" placeholder="Введите H9" value="{{ calculator.H9 | float | round(2) if calculator.H9 is not none else '' }}">
                                 </div>
                                 {% if config_admin %}
                                 <div class="config-admin-panel">
@@ -288,7 +297,7 @@
                                 <input type="number" step="any" class="form-control" id="n1" name="n1" placeholder="Введите n1" value="{{ calculator.n1 | float | round(2) if calculator.n1 is not none else '' }}">
                             </div>
                             <div class="col-md-4">
-                                <label for="n2" class="form-label">Между отверстиями в узлах</label>
+                                <label for="n2" class="form-label">Между отверстиями в стекле</label>
                                 <input type="number" step="any" class="form-control" id="n2" name="n2" placeholder="Введите n2" value="{{ calculator.n2 | float | round(2) if calculator.n2 is not none else '' }}">
                             </div>
                             <div class="col-md-4">
@@ -298,7 +307,7 @@
                         </div>
                         <div class="row g-2 mt-2">
                             <div class="col-md-6">
-                                <label for="angle_EF" class="form-label">Угол наклона конструкции</label>
+                                <label for="angle_EF" class="form-label">Угол наклона стекла относительно горизонта</label>
                                 <input type="number" step="any" min="0" max="10" class="form-control" id="angle_EF" name="angle_EF" placeholder="0–10" value="{{ (calculator.angle_D - 180) | float | round(2) if calculator.angle_D is not none else '' }}">
                             </div>
                             <div class="col-md-6 d-flex align-items-end">
@@ -313,7 +322,7 @@
                 <!-- Buttons -->
                 <div class="btn-group d-flex justify-content-start" role="group">
                     <button type="submit" class="btn btn-primary"><i class="bi bi-calculator me-1"></i>Рассчитать</button>
-                    <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('calcForm').action.value='reset_config'; document.getElementById('calcForm').submit();"><i class="bi bi-arrow-repeat me-1"></i>Сброс</button>
+                    <button type="button" class="btn btn-outline-secondary" id="resetBtn"><i class="bi bi-arrow-repeat me-1"></i>Сброс</button>
                 </div>
             </form>
         </div>
@@ -342,6 +351,7 @@
                                 <p>H7: {{ results.h7 | float | round(2) if results.h7 is not none else '–' }}</p>
                                 <p>H8: {{ results.h8 | float | round(2) if results.h8 is not none else '–' }}</p>
                                 <p>Hcor: {{ results.hcor | float | round(2) if results.hcor is not none else '–' }}</p>
+                                <p>H9: {{ results.h9 | float | round(2) if results.h9 is not none else '–' }}</p>
                             </div>
                         </div>
                     </div>
@@ -405,7 +415,7 @@
                              <li>Откройте «Свои настройки», чтобы вручную задать размеры либо изменить существующие.</li>
                              <li>Для сохранения, удаления и переименования конфигураций войдите в режим редактирования (требуется пароль администратора).</li>
                              <li>Включите REV, если нижний фитинг должен быть под конструкцией.</li>
-                             <li>Введите три из четырёх параметров в «Основных параметрах»: n1 (вертикальное расстояние между креплениями к стене), n2 (расстояние между отверстиями в узлах конструкции), n3 (длина ванта), угол (0°–10°).</li>
+                             <li>Введите три из четырёх параметров в «Основных параметрах»: n1 (вертикальное расстояние между креплениями к стене), n2 (расстояние между отверстиями в стекле), n3 (длина ванта), угол наклона стекла относительно горизонта (0°–10°).</li>
                              <li>Нажмите «Рассчитать» для получения искомого параметра.</li>
                         </ul>
                     </div>
@@ -415,9 +425,9 @@
                 </div>
             </div>
         </div>
-        <!-- Admin Login Modal -->
+        <!-- Admin Login Modal (styled to match app) -->
         <div class="modal fade" id="adminLoginModal" tabindex="-1" aria-labelledby="adminLoginModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
+            <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <form method="POST" action="{{ url_for('config_admin_login') }}">
                         <div class="modal-header">
@@ -430,7 +440,7 @@
                             <input type="password" class="form-control" id="admin_password" name="admin_password" required autocomplete="current-password">
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x me-1"></i>Отмена</button>
                             <button type="submit" class="btn btn-warning"><i class="bi bi-lock-open me-1"></i>Войти</button>
                         </div>
                     </form>
@@ -656,7 +666,7 @@
 
         // Обработчик для изменения полей H в hParamsForm
         const hParamsForm = document.getElementById('hParamsForm');
-        const hParamFieldNames = ['j_x', 'c_x', 'cd_len', 'de_len', 'fg_len', 'gh_len', 'hi_len', 'jk_len', 'hcor'];
+        const hParamFieldNames = ['j_x', 'c_x', 'cd_len', 'de_len', 'fg_len', 'gh_len', 'hi_len', 'jk_len', 'hcor', 'h9'];
         Array.from(hParamsForm.elements).forEach(function(element) {
             if (element.name && hParamFieldNames.includes(element.name)) {
                 element.addEventListener('input', function() {
@@ -707,6 +717,23 @@
                     calcForm.appendChild(input);
                 }
             });
+        });
+
+        // ================================================================
+        // Кнопка «Сброс» — очистка блока «Основные параметры»
+        // ================================================================
+        document.getElementById('resetBtn').addEventListener('click', function(event) {
+            // Очищаем поля n1, n2, n3, angle_EF
+            document.getElementById('n1').value = '';
+            document.getElementById('n2').value = '';
+            document.getElementById('n3').value = '';
+            document.getElementById('angle_EF').value = '';
+            document.getElementById('rev').checked = false;
+            // Сохраняем пустое состояние
+            saveFormState();
+            // Отправляем форму с action=reset_config для серверной обработки
+            document.getElementById('calcForm').querySelector('input[name="action"]').value = 'reset_config';
+            document.getElementById('calcForm').submit();
         });
     </script>
     <footer class="text-center mt-5 mb-3 text-muted">

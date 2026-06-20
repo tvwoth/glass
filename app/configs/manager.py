@@ -10,7 +10,7 @@ from typing import Any, Optional, List, Dict
 VIRTUAL_CUSTOM_CONFIG = 'Пользовательская конфигурация'
 H_PARAM_KEYS = (
     'j_x', 'c_x', 'cd_len', 'de_len', 'fg_len',
-    'gh_len', 'hi_len', 'jk_len', 'hcor',
+    'gh_len', 'hi_len', 'jk_len', 'hcor', 'h9',
 )
 MAX_CONFIG_NAME_LEN = 100
 MAX_CONFIG_FILE_SIZE = 4096
@@ -225,5 +225,6 @@ class ConfigManager:
             'hi_len': calculator.HI_LEN,
             'jk_len': calculator.JK_LEN,
             'hcor': calculator.HCOR,
+            'h9': calculator.H9,
             'image': None,
         }

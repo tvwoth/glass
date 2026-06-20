@@ -35,6 +35,7 @@ class ContourCalculator:
         self.J_X = 0
         self.JK_LEN = 0
         self.HCOR = 0
+        self.H9 = 0  # толщина стекла
         self.K_X = self.J_X
         self.K_Y = self.A_Y
         self.REV = False
@@ -64,6 +65,7 @@ class ContourCalculator:
                 self.set_hi_len(config.get("hi_len", self.HI_LEN))
                 self.set_jk_len(config.get("jk_len", self.JK_LEN))
                 self.set_hcor(config.get("hcor", self.HCOR))
+                self.set_h9(config.get("h9", self.H9))
                 return config.get("image")
             except (json.JSONDecodeError, FileNotFoundError) as e:
                 print(f"Ошибка чтения {config_file}: {e}, используются значения по умолчанию")
@@ -97,6 +99,22 @@ class ContourCalculator:
 
     def set_hcor(self, hcor):
         self.HCOR = hcor
+
+    def set_h9(self, h9):
+        """Установить толщину стекла H9. None интерпретируется как 0."""
+        if h9 is None:
+            h9 = 0
+        if h9 < 0:
+            raise ValueError("Толщина стекла H9 не может быть отрицательной")
+        self.H9 = h9
+
+    def get_effective_de_len(self):
+        """Вернуть H4_рабочее = DE_LEN + H9/2 для использования в расчётах."""
+        return self.DE_LEN + self.H9 / 2
+
+    def get_effective_fg_len(self):
+        """Вернуть H5_рабочее = FG_LEN + H9/2 для использования в расчётах."""
+        return self.FG_LEN + self.H9 / 2
 
     def set_directions(self, REV=None):
         if REV is not None:
@@ -154,14 +172,14 @@ class ContourCalculator:
         d_y = c_y + self.CD_LEN if self.REV else c_y - self.CD_LEN
         points.append((self.D_X, d_y))  # D
         d_x, d_y = points[3]
-        e_x = d_x - self.DE_LEN * cos_alpha if self.REV else d_x + self.DE_LEN * cos_alpha
-        e_y = d_y + self.DE_LEN * sin_alpha if self.REV else d_y - self.DE_LEN * sin_alpha
+        e_x = d_x - self.get_effective_de_len() * cos_alpha if self.REV else d_x + self.get_effective_de_len() * cos_alpha
+        e_y = d_y + self.get_effective_de_len() * sin_alpha if self.REV else d_y - self.get_effective_de_len() * sin_alpha
         points.append((e_x, e_y))  # E
         e_x, e_y = points[4]
         f_x = e_x + n2 * math.cos(alpha_rad + math.pi / 2)
         f_y = e_y - n2 * math.sin(alpha_rad + math.pi / 2)
         points.append((f_x, f_y))  # F
-        points.append((f_x - self.FG_LEN * cos_alpha, f_y + self.FG_LEN * sin_alpha))  # G
+        points.append((f_x - self.get_effective_fg_len() * cos_alpha, f_y + self.get_effective_fg_len() * sin_alpha))  # G
         g_x, g_y = points[6]
         points.append((g_x, g_y + self.GH_LEN))  # H
         points.append((g_x + self.HI_LEN, g_y + self.GH_LEN))  # I
@@ -231,14 +249,14 @@ class ContourCalculator:
             d_y = c_y + self.CD_LEN if self.REV else c_y - self.CD_LEN
             points.append((self.D_X, d_y))  # D
             d_x, d_y = points[3]
-            e_x = d_x - self.DE_LEN * cos_alpha if self.REV else d_x + self.DE_LEN * cos_alpha
-            e_y = d_y + self.DE_LEN * sin_alpha if self.REV else d_y - self.DE_LEN * sin_alpha
+            e_x = d_x - self.get_effective_de_len() * cos_alpha if self.REV else d_x + self.get_effective_de_len() * cos_alpha
+            e_y = d_y + self.get_effective_de_len() * sin_alpha if self.REV else d_y - self.get_effective_de_len() * sin_alpha
             points.append((e_x, e_y))  # E
             e_x, e_y = points[4]
             f_x = e_x + n2 * math.cos(alpha_rad + math.pi / 2)
             f_y = e_y - n2 * math.sin(alpha_rad + math.pi / 2)
             points.append((f_x, f_y))  # F
-            points.append((f_x - self.FG_LEN * cos_alpha, f_y + self.FG_LEN * sin_alpha))  # G
+            points.append((f_x - self.get_effective_fg_len() * cos_alpha, f_y + self.get_effective_fg_len() * sin_alpha))  # G
             g_x, g_y = points[6]
             points.append((g_x, g_y + self.GH_LEN))  # H
             points.append((g_x + self.HI_LEN, g_y + self.GH_LEN))  # I
@@ -284,8 +302,8 @@ class ContourCalculator:
     def calculate_e(self, d_x, d_y, alpha_rad):
         cos_alpha = math.cos(alpha_rad)
         sin_alpha = math.sin(alpha_rad)
-        e_x = d_x - self.DE_LEN * cos_alpha if self.REV else d_x + self.DE_LEN * cos_alpha
-        e_y = d_y + self.DE_LEN * sin_alpha if self.REV else d_y - self.DE_LEN * sin_alpha
+        e_x = d_x - self.get_effective_de_len() * cos_alpha if self.REV else d_x + self.get_effective_de_len() * cos_alpha
+        e_y = d_y + self.get_effective_de_len() * sin_alpha if self.REV else d_y - self.get_effective_de_len() * sin_alpha
         return (e_x, e_y)
 
     def calculate_f(self, e_x, e_y, alpha_rad):
@@ -296,7 +314,7 @@ class ContourCalculator:
     def calculate_g(self, f_x, f_y, alpha_rad):
         cos_alpha = math.cos(alpha_rad)
         sin_alpha = math.sin(alpha_rad)
-        return (f_x - self.FG_LEN * cos_alpha, f_y + self.FG_LEN * sin_alpha)
+        return (f_x - self.get_effective_fg_len() * cos_alpha, f_y + self.get_effective_fg_len() * sin_alpha)
 
     def calculate_h(self, g_x, g_y):
         return (g_x, g_y + self.GH_LEN)
