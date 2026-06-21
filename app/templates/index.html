@@ -23,8 +23,13 @@
             justify-content: center;
         }
         .h-params-img {
-            max-width: 300px;
+            max-width: 100%;
             height: auto;
+        }
+        @media (min-width: 768px) {
+            .h-params-img {
+                max-width: 600px;
+            }
         }
         .h-params-fields {
             max-height: 400px;
@@ -99,9 +104,6 @@
             }
             .h-params-fields {
                 max-height: 340px;
-            }
-            .h-params-img {
-                max-width: 100%;
             }
             .h-params-fields .form-control {
                 max-width: 100%;
