@@ -63,7 +63,6 @@ confirm() {
     local msg="$1"
     local resp
     # Strip ANSI escape sequences to avoid raw codes appearing in read prompt
-    # Use printf '%b' to convert literal \033 strings to actual escape chars, then strip them
     local clean_msg
     clean_msg=$(printf '%b' "$msg" | sed 's/\033\[[0-9;]*m//g')
     echo -n "${clean_msg} [y/N]: "
@@ -123,14 +122,14 @@ detect_distro() {
         return
     fi
 
-    # Fedora
-    if [[ "$id" == "fedora" ]]; then
+    # Fedora (проверяем и id, и id_like)
+    if [[ "$id" == "fedora" || "$id_like" == *"fedora"* ]]; then
         echo "fedora"
         return
     fi
 
     # AlmaLinux / Rocky
-    if [[ "$id" == "almalinux" || "$id" == "rocky" || "$id_like" == *"rhel"* || "$id_like" == *"fedora"* ]]; then
+    if [[ "$id" == "almalinux" || "$id" == "rocky" || "$id_like" == *"rhel"* || "$id_like" == *"centos"* ]]; then
         if [[ "$id" == "almalinux" ]]; then
             echo "almalinux"
             return
@@ -194,6 +193,10 @@ install_packages_distro() {
     # remove first two args (distro, pkg_manager)
     packages=("${packages[@]:2}")
 
+    if [[ ${#packages[@]} -eq 0 ]]; then
+        return 0
+    fi
+
     log "Установка пакетов: ${packages[*]}"
 
     case "$pkg_manager" in
@@ -212,6 +215,101 @@ install_packages_distro() {
             exit 1
             ;;
     esac
+}
+
+# ============================================================================
+# Установка Werkzeug
+# ============================================================================
+# Приоритет:
+#   1. Системный пакет (python3-werkzeug / python-werkzeug)
+#   2. Установка через pip3/pip (с автоматической установкой pip)
+#   3. Вывод инструкции по ручной установке
+
+install_werkzeug() {
+    local distro="$1"
+    local pkg_manager="$2"
+
+    # Проверяем, установлен ли уже Werkzeug
+    if python3 -c "import werkzeug" 2>/dev/null; then
+        log "Werkzeug уже установлен."
+        return 0
+    fi
+
+    log "Werkzeug не установлен."
+
+    if ! confirm "Установить Werkzeug (необходим для хеширования паролей)?"; then
+        error "Без Werkzeug установка невозможна."
+        exit 1
+    fi
+
+    # Шаг 1: пробуем системный пакет
+    local system_pkg=""
+    case "$pkg_manager" in
+        apt)    system_pkg="python3-werkzeug" ;;
+        pacman) system_pkg="python-werkzeug" ;;
+        dnf)    system_pkg="python3-werkzeug" ;;
+    esac
+
+    if [[ -n "$system_pkg" ]]; then
+        log "Пробуем установить системный пакет: ${system_pkg}..."
+        install_packages_distro "$distro" "$pkg_manager" "$system_pkg"
+        if python3 -c "import werkzeug" 2>/dev/null; then
+            success "Werkzeug установлен через системный пакет."
+            return 0
+        fi
+        warn "Системный пакет ${system_pkg} не установился или недоступен."
+    fi
+
+    # Шаг 2: пробуем pip
+    log "Пробуем установить Werkzeug через pip..."
+
+    # Убеждаемся, что pip установлен
+    if ! check_cmd pip3 && ! check_cmd pip; then
+        log "pip не найден. Устанавливаем pip..."
+        case "$pkg_manager" in
+            apt)
+                install_packages_distro "$distro" "$pkg_manager" "python3-pip"
+                ;;
+            pacman)
+                install_packages_distro "$distro" "$pkg_manager" "python-pip"
+                ;;
+            dnf)
+                install_packages_distro "$distro" "$pkg_manager" "python3-pip"
+                ;;
+        esac
+    fi
+
+    # Пробуем pip3, затем pip
+    if check_cmd pip3; then
+        pip3 install werkzeug
+    elif check_cmd pip; then
+        pip install werkzeug
+    fi
+
+    if python3 -c "import werkzeug" 2>/dev/null; then
+        success "Werkzeug установлен через pip."
+        return 0
+    fi
+
+    # Шаг 3: всё failed — выводим инструкцию
+    error "Не удалось установить Werkzeug автоматически."
+    error ""
+    error "Пожалуйста, установите Werkzeug вручную:"
+    case "$pkg_manager" in
+        apt)
+            error "  sudo apt-get install python3-werkzeug"
+            error "  или: sudo pip3 install werkzeug"
+            ;;
+        pacman)
+            error "  sudo pacman -S python-werkzeug"
+            error "  или: sudo pip install werkzeug"
+            ;;
+        dnf)
+            error "  sudo dnf install python3-werkzeug"
+            error "  или: sudo pip3 install werkzeug"
+            ;;
+    esac
+    exit 1
 }
 
 # ============================================================================
@@ -247,6 +345,7 @@ install_docker() {
                 docker-buildx-plugin docker-compose-plugin
             ;;
         arch)
+            # На Arch Docker Compose V2 входит в пакет docker-compose
             pacman -Sy --noconfirm docker docker-compose
             ;;
         fedora|almalinux|rocky|rhel)
@@ -380,85 +479,33 @@ main() {
     check_network
 
     # ------------------------------------------------------------------
-    # 3. Проверка/установка компонентов
+    # 3. Проверка/установка общих компонентов
+    #    (git, curl, python3, openssl — названия пакетов одинаковы
+    #     для всех дистрибутивов, кроме Arch, где python называется python)
     # ------------------------------------------------------------------
-    case "$PKG_MANAGER" in
-        apt)
-            ensure_component "git"    "Git"    "$DISTRO" "$PKG_MANAGER" "git"
-            ensure_component "curl"   "curl"   "$DISTRO" "$PKG_MANAGER" "curl"
-            ensure_component "python3" "Python 3" "$DISTRO" "$PKG_MANAGER" "python3"
-            # openssl для генерации SECRET_KEY
-            ensure_component "openssl" "OpenSSL" "$DISTRO" "$PKG_MANAGER" "openssl"
-            # werkzeug для хеширования паролей — проверяем модуль, а не команду
-            if ! python3 -c "import werkzeug" 2>/dev/null; then
-                log "Werkzeug не установлен."
-                if confirm "Установить Werkzeug?"; then
-                    install_packages_distro "$DISTRO" "$PKG_MANAGER" "python3-werkzeug"
-                    if ! python3 -c "import werkzeug" 2>/dev/null; then
-                        log "Пробуем установить через pip..."
-                        pip3 install werkzeug 2>/dev/null || pip install werkzeug 2>/dev/null || true
-                    fi
-                else
-                    error "Без Werkzeug установка невозможна."
-                    exit 1
-                fi
-            else
-                log "Werkzeug уже установлен."
-            fi
-            ;;
-        pacman)
-            ensure_component "git"    "Git"    "$DISTRO" "$PKG_MANAGER" "git"
-            ensure_component "curl"   "curl"   "$DISTRO" "$PKG_MANAGER" "curl"
-            ensure_component "python3" "Python 3" "$DISTRO" "$PKG_MANAGER" "python"
-            ensure_component "openssl" "OpenSSL" "$DISTRO" "$PKG_MANAGER" "openssl"
-            # werkzeug для хеширования паролей — проверяем модуль, а не команду
-            if ! python3 -c "import werkzeug" 2>/dev/null; then
-                log "Werkzeug не установлен."
-                if confirm "Установить Werkzeug?"; then
-                    install_packages_distro "$DISTRO" "$PKG_MANAGER" "python-werkzeug"
-                    if ! python3 -c "import werkzeug" 2>/dev/null; then
-                        log "Пробуем установить через pip..."
-                        pip3 install werkzeug 2>/dev/null || pip install werkzeug 2>/dev/null || true
-                    fi
-                else
-                    error "Без Werkzeug установка невозможна."
-                    exit 1
-                fi
-            else
-                log "Werkzeug уже установлен."
-            fi
-            ;;
-        dnf)
-            ensure_component "git"    "Git"    "$DISTRO" "$PKG_MANAGER" "git"
-            ensure_component "curl"   "curl"   "$DISTRO" "$PKG_MANAGER" "curl"
-            ensure_component "python3" "Python 3" "$DISTRO" "$PKG_MANAGER" "python3"
-            ensure_component "openssl" "OpenSSL" "$DISTRO" "$PKG_MANAGER" "openssl"
-            # werkzeug для хеширования паролей — проверяем модуль, а не команду
-            if ! python3 -c "import werkzeug" 2>/dev/null; then
-                log "Werkzeug не установлен."
-                if confirm "Установить Werkzeug?"; then
-                    install_packages_distro "$DISTRO" "$PKG_MANAGER" "python3-werkzeug"
-                    if ! python3 -c "import werkzeug" 2>/dev/null; then
-                        log "Пробуем установить через pip..."
-                        pip3 install werkzeug 2>/dev/null || pip install werkzeug 2>/dev/null || true
-                    fi
-                else
-                    error "Без Werkzeug установка невозможна."
-                    exit 1
-                fi
-            else
-                log "Werkzeug уже установлен."
-            fi
-            ;;
-    esac
+    ensure_component "git"     "Git"      "$DISTRO" "$PKG_MANAGER" "git"
+    ensure_component "curl"    "curl"     "$DISTRO" "$PKG_MANAGER" "curl"
+    ensure_component "openssl" "OpenSSL"  "$DISTRO" "$PKG_MANAGER" "openssl"
+
+    # Python 3: на Arch пакет называется python, на остальных — python3
+    if [[ "$PKG_MANAGER" == "pacman" ]]; then
+        ensure_component "python3" "Python 3" "$DISTRO" "$PKG_MANAGER" "python"
+    else
+        ensure_component "python3" "Python 3" "$DISTRO" "$PKG_MANAGER" "python3"
+    fi
 
     # ------------------------------------------------------------------
-    # 4. Установка Docker
+    # 4. Установка Werkzeug (единая функция для всех дистрибутивов)
+    # ------------------------------------------------------------------
+    install_werkzeug "$DISTRO" "$PKG_MANAGER"
+
+    # ------------------------------------------------------------------
+    # 5. Установка Docker
     # ------------------------------------------------------------------
     install_docker "$DISTRO" "$PKG_MANAGER"
 
     # ------------------------------------------------------------------
-    # 5. Проверка docker compose
+    # 6. Проверка docker compose
     # ------------------------------------------------------------------
     if ! docker compose version >/dev/null 2>&1; then
         error "Docker Compose не доступен после установки Docker."
@@ -467,7 +514,7 @@ main() {
     log "Docker Compose: $(docker compose version --short 2>/dev/null || echo 'OK')"
 
     # ------------------------------------------------------------------
-    # 6. Работа с репозиторием
+    # 7. Работа с репозиторием
     # ------------------------------------------------------------------
     APP_DIR="/opt/glass"
     REPO_URL="https://github.com/tvwoth/glass.git"
@@ -490,7 +537,7 @@ main() {
     chmod +x "$APP_DIR"/*.sh || true
 
     # ------------------------------------------------------------------
-    # 7. Создание глобальных команд
+    # 8. Создание глобальных команд
     # ------------------------------------------------------------------
     log "Устанавливаем команды в /usr/local/bin..."
     mkdir -p /usr/local/bin
@@ -502,17 +549,13 @@ main() {
     success "Команды contour-* доступны глобально."
 
     # ------------------------------------------------------------------
-    # 8. Запрос порта
+    # 9. Запрос порта
     # ------------------------------------------------------------------
-    read -rp "Введите порт приложения [5000]: " APP_PORT
-    APP_PORT=${APP_PORT:-5000}
-    while ! check_port "$APP_PORT"; do
-        APP_PORT=$(prompt_port "$APP_PORT")
-    done
+    APP_PORT=$(prompt_port "5000")
     log "Порт приложения: $APP_PORT"
 
     # ------------------------------------------------------------------
-    # 9. Создание/обновление .env
+    # 10. Создание/обновление .env
     # ------------------------------------------------------------------
     cd "$APP_DIR"
 
@@ -553,14 +596,12 @@ main() {
         break
     done
 
-    # Установка werkzeug если не установлен
-    if ! python3 -c "import werkzeug" 2>/dev/null; then
-        log "Устанавливаем werkzeug для хеширования паролей..."
-        pip3 install werkzeug 2>/dev/null || pip install werkzeug 2>/dev/null || \
-            apt-get install -y python3-werkzeug 2>/dev/null || true
-    fi
-
-    HASHED_PW=$(python3 -c "import werkzeug.security; print(werkzeug.security.generate_password_hash('${ADMIN_PW}'))")
+    # Хешируем пароль через переменную окружения (безопасно, без инъекции)
+    HASHED_PW=$(ADMIN_PW="$ADMIN_PW" python3 -c "
+import os
+import werkzeug.security
+print(werkzeug.security.generate_password_hash(os.environ['ADMIN_PW']))
+")
     if grep -q '^CONFIG_ADMIN_PASSWORD=' .env 2>/dev/null; then
         sed -i "s|^CONFIG_ADMIN_PASSWORD=.*$|CONFIG_ADMIN_PASSWORD=${HASHED_PW}|" .env
     else
@@ -581,34 +622,28 @@ main() {
     fi
 
     # ------------------------------------------------------------------
-    # 10. Создание каталогов и прав
+    # 11. Создание каталогов и прав
     # ------------------------------------------------------------------
     mkdir -p "$APP_DIR/data/user_configs"
     chown -R 1000:1000 "$APP_DIR/data/user_configs" 2>/dev/null || true
     chmod 755 "$APP_DIR/data/user_configs" 2>/dev/null || true
 
     # ------------------------------------------------------------------
-    # 11. Проверка порта для nginx
+    # 12. Проверка порта для nginx
     # ------------------------------------------------------------------
     HOST_HTTP_PORT=$(grep '^HOST_HTTP_PORT=' .env | cut -d'=' -f2-)
     HOST_HTTP_PORT=${HOST_HTTP_PORT:-80}
 
     if is_port_busy "$HOST_HTTP_PORT"; then
         warn "Порт $HOST_HTTP_PORT занят на хосте."
-        read -rp "Введите порт хоста для nginx [8080]: " HOST_HTTP_PORT
-        HOST_HTTP_PORT=${HOST_HTTP_PORT:-8080}
-        while is_port_busy "$HOST_HTTP_PORT"; do
-            warn "Порт $HOST_HTTP_PORT тоже занят."
-            read -rp "Введите порт хоста для nginx [8080]: " HOST_HTTP_PORT
-            HOST_HTTP_PORT=${HOST_HTTP_PORT:-8080}
-        done
+        HOST_HTTP_PORT=$(prompt_port "8080")
     fi
 
     sed -i "s/^HOST_HTTP_PORT=.*$/HOST_HTTP_PORT=${HOST_HTTP_PORT}/" .env
     log "HTTP-порт nginx на хосте: ${HOST_HTTP_PORT}"
 
     # ------------------------------------------------------------------
-    # 12. Запуск Docker-стека
+    # 13. Запуск Docker-стека
     # ------------------------------------------------------------------
     log "Останавливаем существующие контейнеры..."
     docker compose down --remove-orphans 2>/dev/null || true
@@ -650,7 +685,7 @@ main() {
     done
 
     # ------------------------------------------------------------------
-    # 13. Автообновление (опционально)
+    # 14. Автообновление (опционально)
     # ------------------------------------------------------------------
     if confirm "Включить ежедневное автообновление (systemd timer)?"; then
         log "Настраиваем systemd-таймеры..."
@@ -663,7 +698,7 @@ main() {
     fi
 
     # ------------------------------------------------------------------
-    # 14. Завершение
+    # 15. Завершение
     # ------------------------------------------------------------------
     local ip
     ip=$(hostname -I 2>/dev/null | awk '{print $1}')
