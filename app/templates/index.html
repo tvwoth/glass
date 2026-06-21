@@ -114,6 +114,12 @@
             font-weight: 600;
         }
         @media (max-width: 576px) {
+            .h-params-fields {
+                max-height: 500px;
+                overflow-y: auto;
+                overflow-x: hidden;
+                padding-bottom: 60px;
+            }
             .h-params-fields .form-control {
                 max-width: 100%;
             }
@@ -313,19 +319,19 @@
                             </div>
                         </div>
                         <div class="row g-2 mt-2">
-                            <div class="col-md-6">
-                                <label for="angle_EF" class="form-label">Угол наклона стекла относительно горизонта</label>
+                            <div class="col-md-5">
+                                <label for="angle_EF" class="form-label">Угол наклона стекла (град)</label>
                                 <input type="number" step="any" min="0" max="10" class="form-control" id="angle_EF" name="angle_EF" placeholder="0–10" value="{{ (calculator.angle_D - 180) | float | round(2) if calculator.angle_D is not none else '' }}">
                             </div>
-                            <div class="col-md-6 d-flex align-items-end">
-                                <div class="form-check form-switch">
+                            <div class="col-md-2 d-flex align-items-end">
+                                <div class="form-check form-switch mb-2">
                                     <input class="form-check-input" type="checkbox" id="rev" name="rev" {% if calculator.REV %}checked{% endif %}>
                                     <label class="form-check-label" for="rev">REV</label>
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <label for="h9" class="form-label">H9 (мм) — Толщина стекла</label>
-                                <input type="number" step="any" min="0" class="form-control" id="h9" name="h9" placeholder="Введите H9" value="{{ calculator.H9 | float | round(2) if calculator.H9 is not none else '' }}">
+                            <div class="col-md-5">
+                                <label for="h9" class="form-label">(Толщина стекла)</label>
+                                <input type="number" step="any" min="0" class="form-control" id="h9" name="h9" placeholder="Введите значение H9" value="{{ calculator.H9 | float | round(2) if calculator.H9 is not none else '' }}">
                             </div>
                         </div>
                     </div>
