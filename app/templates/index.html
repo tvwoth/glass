@@ -9,7 +9,6 @@
     <style>
         /* Стили для H-параметров */
         .h-params-container {
-            max-height: 700px;
             position: relative;
             overflow: hidden;
         }
@@ -27,14 +26,30 @@
             height: auto;
         }
         @media (min-width: 768px) {
+            .h-params-container {
+                display: flex;
+                flex-direction: row;
+                max-height: none;
+                overflow: visible;
+            }
+            .h-params-img-container {
+                order: 2;
+                position: sticky;
+                top: 0;
+                width: 400px;
+                flex-shrink: 0;
+            }
+            .h-params-fields {
+                order: 1;
+                flex: 1;
+                max-height: none;
+                overflow: visible;
+            }
             .h-params-img {
-                max-width: 600px;
+                max-width: 100%;
             }
         }
         .h-params-fields {
-            max-height: 400px;
-            overflow-y: auto;
-            overflow-x: hidden;
             padding: 10px;
             margin-top: 10px;
         }
@@ -99,12 +114,6 @@
             font-weight: 600;
         }
         @media (max-width: 576px) {
-            .h-params-container {
-                max-height: 600px;
-            }
-            .h-params-fields {
-                max-height: 340px;
-            }
             .h-params-fields .form-control {
                 max-width: 100%;
             }
@@ -262,10 +271,6 @@
                                     <label for="hcor" class="form-label">Hcor (мм)</label>
                                     <input type="number" step="any" class="form-control h-param" id="hcor" name="hcor" placeholder="Введите Hcor" value="{{ calculator.HCOR | float | round(2) if calculator.HCOR is not none else '' }}">
                                 </div>
-                                <div class="mb-2">
-                                    <label for="h9" class="form-label">H9 (мм) — Толщина стекла</label>
-                                    <input type="number" step="any" min="0" class="form-control h-param" id="h9" name="h9" placeholder="Введите H9" value="{{ calculator.H9 | float | round(2) if calculator.H9 is not none else '' }}">
-                                </div>
                                 {% if config_admin %}
                                 <div class="config-admin-panel">
                                     <div class="mb-2">
@@ -317,6 +322,10 @@
                                     <input class="form-check-input" type="checkbox" id="rev" name="rev" {% if calculator.REV %}checked{% endif %}>
                                     <label class="form-check-label" for="rev">REV</label>
                                 </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="h9" class="form-label">H9 (мм) — Толщина стекла</label>
+                                <input type="number" step="any" min="0" class="form-control" id="h9" name="h9" placeholder="Введите H9" value="{{ calculator.H9 | float | round(2) if calculator.H9 is not none else '' }}">
                             </div>
                         </div>
                     </div>
