@@ -174,11 +174,40 @@
                 font-size: 0.9rem;
             }
         }
+        /* Стили для шапки с логотипом */
+        .app-header {
+            align-items: center;
+        }
+        .app-logo {
+            height: 64px;
+            width: auto;
+            flex-shrink: 0;
+        }
+        @media (max-width: 768px) {
+            .app-logo {
+                height: 48px;
+            }
+            .app-header h1 {
+                font-size: 1.5rem;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 class="mb-4">Конструкция стеклянного козырька</h1>
+        <div class="d-flex align-items-center gap-3 mb-4 app-header">
+            <img
+                src="{{ url_for('static', filename='logo.png') }}"
+                alt="Contour Glass"
+                class="app-logo"
+            >
+            <div>
+                <h1 class="mb-0">Contour Glass</h1>
+                <div class="text-muted">
+                    Конструкция стеклянного козырька
+                </div>
+            </div>
+        </div>
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
